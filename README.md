@@ -12,7 +12,7 @@ Game mô phỏng quản lý đế chế dịch vụ giải trí cao cấp trong 
 Mở `index.html` hoặc chạy `python3 -m http.server 8080`, sau đó truy cập localhost:8080. PWA yêu cầu HTTPS hoặc localhost.
 
 ## Gameplay
-Dashboard; tuyển dụng nhân vật 18+; đào tạo và thưởng; nhận hợp đồng, phân công và hoàn tất; mạng lưới ngầm với rủi ro trừu tượng; nâng cấp cơ sở; sổ cái tài chính; chu kỳ ngày và nhật ký.
+Dashboard; tuyển dụng nhân vật 18+; hồ sơ nhân sự chi tiết; đào tạo và thưởng; nhận hợp đồng, phân công và hoàn tất; mạng lưới ngầm với rủi ro trừu tượng; nâng cấp cơ sở; sổ cái tài chính; chu kỳ ngày và nhật ký. Bản mở rộng bổ sung chiến dịch cốt truyện 4 chương với lựa chọn phân nhánh, hệ quả tài chính/danh tiếng/điều tra và nhiều kết cục. Tiến trình chiến dịch được lưu riêng trong LocalStorage.
 
 ## GitHub Pages
 Settings → Pages → Source: GitHub Actions. Workflow kiểm tra JavaScript/manifest và deploy nội dung tĩnh.
