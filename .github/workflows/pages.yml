@@ -27,7 +27,8 @@ jobs:
           convert icon.png -resize 192x192 -gravity center -extent 192x192 PNG32:icon-192.png
           convert icon.png -resize 512x512 -gravity center -extent 512x512 PNG32:icon-512.png
           convert icon.png -resize 180x180 -gravity center -extent 180x180 PNG32:apple-touch-icon.png
-          identify icon-192.png icon-512.png apple-touch-icon.png\n      - name: Publish static PWA to gh-pages
+          identify icon-192.png icon-512.png apple-touch-icon.png
+      - name: Publish static PWA to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
