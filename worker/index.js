@@ -142,6 +142,40 @@ async function loadSave(env, profile) {
   try { save = JSON.parse(rows[index][3]); } catch { throw new Error("Dữ liệu save trên Sheet bị lỗi định dạng."); }
   return { save, updatedAt: rows[index][4] || null };
 }
+async function deleteMyData(env, profile) {
+  const [players, saves, history, orders, transactions, meta] = await Promise.all([
+    readRows(env, "Players!A2:D"),
+    readRows(env, "GameSaves!A2:E"),
+    readRows(env, "SaveHistory!A2:E"),
+    readRows(env, "PaymentOrders!A2:J"),
+    readRows(env, "PaymentTransactions!A2:F"),
+    sheetsRequest(env, "?fields=sheets.properties(sheetId,title)")
+  ]);
+  const ownedOrders = new Set(orders.filter(r => r[1] === profile.sub).map(r => r[0]).filter(Boolean));
+  const targets = [
+    { title: "Players", rows: players, match: r => r[0] === profile.sub },
+    { title: "GameSaves", rows: saves, match: r => r[0] === profile.sub },
+    { title: "SaveHistory", rows: history, match: r => r[1] === profile.sub },
+    { title: "PaymentOrders", rows: orders, match: r => r[1] === profile.sub },
+    { title: "PaymentTransactions", rows: transactions, match: r => ownedOrders.has(r[1]) }
+  ];
+  const sheetIds = new Map((meta.sheets || []).map(s => [s.properties.title, s.properties.sheetId]));
+  const requests = [];
+  const counts = {};
+  for (const target of targets) {
+    const sheetId = sheetIds.get(target.title);
+    if (sheetId === undefined) continue;
+    const rowIndexes = [];
+    target.rows.forEach((row, index) => { if (target.match(row)) rowIndexes.push(index + 1); });
+    counts[target.title] = rowIndexes.length;
+    rowIndexes.sort((a, b) => b - a).forEach(index => requests.push({
+      deleteDimension: { range: { sheetId, dimension: "ROWS", startIndex: index, endIndex: index + 1 } }
+    }));
+  }
+  if (requests.length) await sheetsRequest(env, ":batchUpdate", { method: "POST", body: JSON.stringify({ requests }) });
+  return { deleted: counts, total: Object.values(counts).reduce((sum, n) => sum + n, 0) };
+}
+
 async function saveGame(env, profile, save) {
   const serialized = JSON.stringify(save);
   if (serialized.length > 45000) throw new Error("Save quá lớn cho một ô Google Sheets (tối đa 45.000 ký tự).");
@@ -237,7 +271,7 @@ export default {
         const result = await loadSave(env, profile);
         return json({ ok: true, profile, ...result }, 200, allowed);
       }
-      if (url.pathname === "/api/save" && request.method === "POST") {
+      if (url.pathname === "/api/account/delete-data" && request.method === "POST") {\n        const result = await deleteMyData(env, profile);\n        return json({ ok: true, ...result }, 200, allowed);\n      }\n      if (url.pathname === "/api/save" && request.method === "POST") {
         const body = await request.json();
         if (!body.save || typeof body.save !== "object" || Array.isArray(body.save)) return json({ ok: false, error: "Save không hợp lệ." }, 400, allowed);
         const result = await saveGame(env, profile, body.save);
