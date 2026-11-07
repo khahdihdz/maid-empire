@@ -1,0 +1,8 @@
+name = "maid-empire-api"
+main = "worker/index.js"
+compatibility_date = "2026-11-07"
+
+[vars]
+GOOGLE_CLIENT_ID = "654545046885-qpli58rerh6d2b4t8f5bhijr10ibeu4v.apps.googleusercontent.com"
+SPREADSHEET_ID = "10vCDKjK-ZHOIK5wMMZ-0Nq4Pf30wxoaqGMlI64mbLCU"
+ALLOWED_ORIGIN = "https://khahdihdz.github.io"
