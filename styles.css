@@ -133,3 +133,6 @@
   .start-menu{min-height:100vh}
   .start-content{max-height:calc(100vh - 24px)}
 }
+
+/* Prevent browser zoom gestures; preserve normal scrolling and game controls. */
+html,body{touch-action:pan-x pan-y;overscroll-behavior-x:none}button,a,input,select,textarea{touch-action:manipulation}
