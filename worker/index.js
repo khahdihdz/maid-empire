@@ -80,7 +80,7 @@ async function sheetsRequest(env, path, options = {}) {
 async function ensureTabs(env) {
   const info = await sheetsRequest(env, "?fields=sheets.properties.title");
   const names = new Set((info.sheets || []).map(x => x.properties.title));
-  const wanted = ["Players", "GameSaves", "SaveHistory"];
+  const wanted = ["Players", "GameSaves", "SaveHistory", "PaymentOrders", "PaymentTransactions"];
   const missing = wanted.filter(x => !names.has(x));
   if (missing.length) {
     await sheetsRequest(env, ":batchUpdate", {
@@ -91,7 +91,7 @@ async function ensureTabs(env) {
   const headers = [
     { range: "Players!A1:D1", values: [["Google Sub", "Email", "Tên hiển thị", "Lần đăng nhập cuối"]] },
     { range: "GameSaves!A1:E1", values: [["Google Sub", "Email", "Tên hiển thị", "Save JSON", "Cập nhật lúc"]] },
-    { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] }
+    { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] },\n    { range: "PaymentOrders!A1:I1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay"]] },\n    { range: "PaymentTransactions!A1:F1", values: [["Mã giao dịch SePay", "Mã đơn", "Số tiền", "Mã tham chiếu", "Nội dung", "Thời gian nhận"]] }
   ];
   await Promise.all(headers.map(x => sheetsRequest(env, "/values/" + encodeURIComponent(x.range) + "?valueInputOption=RAW", {
     method: "PUT", body: JSON.stringify({ values: x.values })
@@ -152,6 +152,57 @@ async function saveGame(env, profile, save) {
   await appendRow(env, "SaveHistory!A:E", [now, profile.sub, profile.email, "SAVE", String(serialized.length)]);
   return { updatedAt: now, size: serialized.length };
 }
+
+const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];
+function makePaymentCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="ME";for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
+async function createTopup(env,profile,amount){
+ amount=Number(amount);
+ if(!TOPUP_PACKAGES.includes(amount))throw new Error("Gói nạp không hợp lệ.");
+ if(!env.PAY_BANK_ACCOUNT||!env.PAY_BANK_CODE)throw new Error("Chức năng nạp tiền chưa được cấu hình đầy đủ.");
+ const orderId="ME"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
+ const code=makePaymentCode(),now=Date.now(),expires=new Date(now+15*60*1000).toISOString();
+ await appendRow(env,"PaymentOrders!A:I",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,""]);
+ const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
+ return {orderId,amount,code,expiresAt:expires,qrUrl};
+}
+async function getTopupHistory(env,profile){
+ const rows=await readRows(env,"PaymentOrders!A2:I");
+ return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({orderId:r[0],amount:Number(r[3]),code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]}));
+}
+async function handleSePayWebhook(request,env){
+ if(!env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Webhook not configured"},503);
+ if((request.headers.get("Authorization")||"")!=="Apikey "+env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Unauthorized"},401);
+ let body;try{body=await request.json()}catch{return json({success:false,error:"Invalid JSON"},400)}
+ const txId=String(body.id||""),amount=Number(body.transferAmount),direction=String(body.transferType||"").toLowerCase();
+ if(!txId||!Number.isSafeInteger(amount)||amount<=0||direction!=="in")return json({success:false,error:"Invalid transaction"},400);
+ if(env.PAY_BANK_ACCOUNT&&String(body.accountNumber||"")!==String(env.PAY_BANK_ACCOUNT))return json({success:false,error:"Wrong receiving account"},400);
+ const searchable=(String(body.code||"")+" "+String(body.content||"")).toUpperCase();
+ const orders=await readRows(env,"PaymentOrders!A2:I");
+ const idx=orders.findIndex(r=>r[4]&&searchable.includes(String(r[4]).toUpperCase()));
+ if(idx<0)return json({success:true,ignored:true});
+ const order=orders[idx],rowNo=idx+2;
+ if(order[5]==="PAID")return json({success:true,duplicate:true});
+ if(order[5]!=="PENDING"||Date.now()>Date.parse(order[7]))return json({success:true,ignored:true});
+ if(Number(order[3])!==amount)return json({success:false,error:"Amount mismatch"},400);
+ const transactions=await readRows(env,"PaymentTransactions!A2:F");
+ if(transactions.some(r=>String(r[0])===txId))return json({success:true,duplicate:true});
+ const saves=await readRows(env,"GameSaves!A2:E"),saveIdx=saves.findIndex(r=>r[0]===order[1]);
+ if(saveIdx<0||!saves[saveIdx][3])return json({success:false,error:"Player save not found"},500);
+ let save;try{save=JSON.parse(saves[saveIdx][3])}catch{return json({success:false,error:"Invalid player save"},500)}
+ save.cash=(Number(save.cash)||0)+amount;
+ if(!Array.isArray(save.ledger))save.ledger=[];
+ save.ledger.unshift({name:"Nạp tiền qua QR",n:amount,income:true,day:Number(save.day)||1,time:"",external:true});
+ if(!Array.isArray(save.journal))save.journal=[];
+ save.journal.unshift("Nạp tiền thành công · "+new Intl.NumberFormat("vi-VN").format(amount)+" VND");
+ save.journal=save.journal.slice(0,300);
+ const now=new Date().toISOString();
+ await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
+ await updateRow(env,"PaymentOrders!A"+rowNo+":I"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId]);
+ await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
+ await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount,txId]);
+ return json({success:true});
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -168,7 +219,7 @@ export default {
       }
     });
     const url = new URL(request.url);
-    if (url.pathname === "/health") return json({ ok: true, service: "maid-empire-api" }, 200, allowed);
+    if (url.pathname === "/health") return json({ ok: true, service: "maid-empire-api" }, 200, allowed);\n    if(url.pathname==="/api/sepay/webhook"&&request.method==="POST")return handleSePayWebhook(request,env);
     try {
       if (!env.SPREADSHEET_ID || !env.GOOGLE_CLIENT_ID) throw new Error("Thiếu cấu hình SPREADSHEET_ID hoặc GOOGLE_CLIENT_ID.");
       const authorization = request.headers.get("Authorization") || "";
