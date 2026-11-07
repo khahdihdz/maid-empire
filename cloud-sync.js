@@ -4,6 +4,7 @@
   const API_BASE = (window.MAID_EMPIRE_API_URL || "https://maid-empire-api.khahdihdz.workers.dev").replace(/\/+$/, "");
   let idToken = "";
   let profile = null;
+  const SESSION_KEY = "maidEmpireGoogleSession";
   let cloudReady = false;
   let lastSerialized = "";
   let syncTimer = 0;
@@ -86,6 +87,7 @@
   function onCredential(response) {
     idToken = response.credential || "";
     const data = decodePayload(idToken);
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: idToken, profile: { name: data.name || data.given_name || "Người chơi", email: data.email || "" } })); } catch {}
     profile = { name: data.name || data.given_name || "Người chơi", email: data.email || "" };
     cloudReady = false;
     showAccount();
@@ -104,6 +106,7 @@
   function signOut() {
     idToken = "";
     profile = null;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
     cloudReady = false;
     lastSerialized = "";
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
@@ -130,7 +133,35 @@
   window.addEventListener("maid-empire-refresh", () => scheduleSync(false));
   window.addEventListener("maid-empire-save", () => scheduleSync(true));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") scheduleSync(true); });
+  async function restoreSession() {
+    let saved;
+    try { saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); } catch {}
+    if (!saved?.token) { showAccount(); return; }
+    const claims = decodePayload(saved.token);
+    if (!claims.exp || Number(claims.exp) * 1000 <= Date.now() + 30000) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+      showAccount();
+      status("Phiên Google đã hết hạn. Vui lòng đăng nhập lại.");
+      return;
+    }
+    idToken = saved.token;
+    profile = saved.profile || { name: claims.name || claims.email || "Người chơi", email: claims.email || "" };
+    cloudReady = false;
+    showAccount();
+    status("Đang khôi phục phiên Google và tải tiến trình…");
+    try {
+      await syncOnLogin();
+    } catch (error) {
+      idToken = "";
+      profile = null;
+      cloudReady = false;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+      showAccount();
+      status("Phiên đăng nhập cần xác thực lại: " + error.message);
+    }
+  }
   showAccount();
+  restoreSession();
   let attempts = 0;
   const wait = setInterval(() => {
     attempts++;
