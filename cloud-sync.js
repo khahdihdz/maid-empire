@@ -9,6 +9,7 @@
   let lastSerialized = "";
   let syncTimer = 0;
   let syncing = false;
+  let deleting = false;
   const $ = id => document.getElementById(id);
   const status = message => {
     ["googleSyncStatus", "googleStartStatus"].forEach(id => { const el = $(id); if (el) el.textContent = message; });
@@ -71,7 +72,7 @@
     showAccount();
   }
   async function syncNow() {
-    if (!idToken || !cloudReady || !API_BASE || syncing) return;
+    if (!idToken || !cloudReady || !API_BASE || syncing || deleting) return;
     const raw = JSON.stringify(window.maidEmpire?.state?.() || null);
     if (!raw || raw === lastSerialized) return;
     syncing = true;
@@ -172,19 +173,27 @@
   if (requiredNotice) requiredNotice.textContent = "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
   async function deleteMyData() {
     if (!idToken || !cloudReady) throw new Error("Vui lòng đăng nhập và tải xong dữ liệu trước khi xóa.");
-    const result = await api("/api/account/delete-data", "POST", {});
-    cloudReady = false;
-    lastSerialized = "";
-    idToken = "";
-    profile = null;
-    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
-    if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
-    if (window.maidEmpire?.reset) window.maidEmpire.reset();
-    const menu = $("startMenu");
-    if (menu) menu.hidden = false;
-    showAccount();
-    status("Đã xóa dữ liệu của tài khoản này. Dữ liệu người chơi khác không bị ảnh hưởng.");
-    return result;
+    deleting = true;
+    clearTimeout(syncTimer);
+    while (syncing) await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const result = await api("/api/account/delete-data", "POST", {});
+      cloudReady = false;
+      lastSerialized = "";
+      idToken = "";
+      profile = null;
+      try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+      if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
+      if (window.maidEmpire?.reset) window.maidEmpire.reset();
+      const menu = $("startMenu");
+      if (menu) menu.hidden = false;
+      showAccount();
+      status("Đã xóa dữ liệu của tài khoản này. Dữ liệu người chơi khác không bị ảnh hưởng.");
+      return result;
+    } catch (error) {
+      deleting = false;
+      throw error;
+    }
   }
   window.maidEmpireCloud = { signOut, syncNow, deleteMyData, request: api, configured: !!API_BASE, get ready() { return cloudReady; }, get profile() { return profile; } };
 })();
