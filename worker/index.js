@@ -155,7 +155,8 @@ async function saveGame(env, profile, save) {
   return { updatedAt: now, size: serialized.length };
 }
 
-const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];\nconst TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 VND tiền trong game
+const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];
+const TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 VND tiền trong game
 function makePaymentCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="ME";for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
 async function createTopup(env,profile,amount){
  amount=Number(amount);
@@ -163,7 +164,8 @@ async function createTopup(env,profile,amount){
  if(!env.PAY_BANK_ACCOUNT||!env.PAY_BANK_CODE)throw new Error("Chức năng nạp tiền chưa được cấu hình đầy đủ.");
  const orderId="ME"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
  const code=makePaymentCode(),now=Date.now(),expires=new Date(now+15*60*1000).toISOString();
- const creditAmount=amount*TOPUP_RATE;\n await appendRow(env,"PaymentOrders!A:J",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount)]);
+ const creditAmount=amount*TOPUP_RATE;
+ await appendRow(env,"PaymentOrders!A:J",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount)]);
  const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
  return {orderId,amount,creditAmount,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
 }
@@ -179,7 +181,7 @@ async function handleSePayWebhook(request,env){
  if(!txId||!Number.isSafeInteger(amount)||amount<=0||direction!=="in")return json({success:false,error:"Invalid transaction"},400);
  if(env.PAY_BANK_ACCOUNT&&String(body.accountNumber||"")!==String(env.PAY_BANK_ACCOUNT))return json({success:false,error:"Wrong receiving account"},400);
  const searchable=(String(body.code||"")+" "+String(body.content||"")).toUpperCase();
- const orders=await readRows(env,"PaymentOrders!A2:I");
+ const orders=await readRows(env,"PaymentOrders!A2:J");
  const idx=orders.findIndex(r=>r[4]&&searchable.includes(String(r[4]).toUpperCase()));
  if(idx<0)return json({success:true,ignored:true});
  const order=orders[idx],rowNo=idx+2;
