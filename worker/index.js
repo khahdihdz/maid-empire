@@ -44,7 +44,9 @@ async function googleAccessToken(env) {
   }));
   const unsigned = header + "." + claim;
   const key = await crypto.subtle.importKey(
-    "pkcs8", pemBytes(env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n")),
+    "pkcs8", pemBytes(env.GOOGLE_PRIVATE_KEY.replace(/\
+/g, "
+")),
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]
   );
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
@@ -91,7 +93,9 @@ async function ensureTabs(env) {
   const headers = [
     { range: "Players!A1:D1", values: [["Google Sub", "Email", "Tên hiển thị", "Lần đăng nhập cuối"]] },
     { range: "GameSaves!A1:E1", values: [["Google Sub", "Email", "Tên hiển thị", "Save JSON", "Cập nhật lúc"]] },
-    { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] },\n    { range: "PaymentOrders!A1:I1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay"]] },\n    { range: "PaymentTransactions!A1:F1", values: [["Mã giao dịch SePay", "Mã đơn", "Số tiền", "Mã tham chiếu", "Nội dung", "Thời gian nhận"]] }
+    { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] },
+    { range: "PaymentOrders!A1:I1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay"]] },
+    { range: "PaymentTransactions!A1:F1", values: [["Mã giao dịch SePay", "Mã đơn", "Số tiền", "Mã tham chiếu", "Nội dung", "Thời gian nhận"]] }
   ];
   await Promise.all(headers.map(x => sheetsRequest(env, "/values/" + encodeURIComponent(x.range) + "?valueInputOption=RAW", {
     method: "PUT", body: JSON.stringify({ values: x.values })
@@ -219,7 +223,8 @@ export default {
       }
     });
     const url = new URL(request.url);
-    if (url.pathname === "/health") return json({ ok: true, service: "maid-empire-api" }, 200, allowed);\n    if(url.pathname==="/api/sepay/webhook"&&request.method==="POST")return handleSePayWebhook(request,env);
+    if (url.pathname === "/health") return json({ ok: true, service: "maid-empire-api" }, 200, allowed);
+    if(url.pathname==="/api/sepay/webhook"&&request.method==="POST")return handleSePayWebhook(request,env);
     try {
       if (!env.SPREADSHEET_ID || !env.GOOGLE_CLIENT_ID) throw new Error("Thiếu cấu hình SPREADSHEET_ID hoặc GOOGLE_CLIENT_ID.");
       const authorization = request.headers.get("Authorization") || "";
