@@ -21,13 +21,13 @@
       const el = $(id);
       if (el) {
         el.disabled = !profile || !cloudReady;
-        el.setAttribute("aria-disabled", String(!profile));
+        el.setAttribute("aria-disabled", String(!profile || !cloudReady));
       }
     });
     const gate = $("googleRequiredNotice");
-    if (gate) gate.textContent = profile
-      ? "Đã xác thực tài khoản. Bạn có thể bắt đầu hoặc tiếp tục trò chơi."
-      : "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
+    if (gate) gate.textContent = !profile
+      ? "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI"
+      : cloudReady ? "ĐÃ TẢI TIẾN TRÌNH ĐÁM MÂY · CÓ THỂ VÀO CHƠI" : "ĐANG XÁC THỰC VÀ TẢI TIẾN TRÌNH TỪ ĐÁM MÂY…";
   };
   const decodePayload = token => {
     try { return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); }
