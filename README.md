@@ -5,21 +5,21 @@ Game mô phỏng quản lý đế chế dịch vụ giải trí cao cấp trong 
 ## Công nghệ
 - HTML5, CSS3, Vanilla JavaScript; không framework, không asset ngoài.
 - PWA với Web App Manifest và Service Worker.
-- Lưu tiến trình cục bộ bằng LocalStorage.
+- Bắt buộc đăng nhập Google; tiến trình chỉ lưu trên Google Sheets qua Cloudflare Worker, không lưu LocalStorage/IndexedDB.
 - Responsive cho Web và Android.
 
 ## Chạy local
 Mở `index.html` hoặc chạy `python3 -m http.server 8080`, sau đó truy cập localhost:8080. PWA yêu cầu HTTPS hoặc localhost.
 
 ## Gameplay
-Dashboard; tuyển dụng nhân vật 18+; hồ sơ nhân sự chi tiết; đào tạo và thưởng; nhận hợp đồng, phân công và hoàn tất; mạng lưới ngầm với rủi ro trừu tượng; nâng cấp cơ sở; sổ cái tài chính; chu kỳ ngày và nhật ký. Bản mở rộng bổ sung chiến dịch cốt truyện 4 chương với lựa chọn phân nhánh, hệ quả tài chính/danh tiếng/điều tra và nhiều kết cục. Tiến trình chiến dịch được lưu riêng trong LocalStorage.
+Dashboard; tuyển dụng nhân vật 18+; hồ sơ nhân sự chi tiết; đào tạo và thưởng; nhận hợp đồng, phân công và hoàn tất; mạng lưới ngầm với rủi ro trừu tượng; nâng cấp cơ sở; sổ cái tài chính; chu kỳ ngày và nhật ký. Bản mở rộng bổ sung chiến dịch cốt truyện 4 chương với lựa chọn phân nhánh, hệ quả tài chính/danh tiếng/điều tra và nhiều kết cục. Tiến trình chiến dịch được lưu cùng dữ liệu game trên Google Sheets theo tài khoản.
 
 ## Cài đặt PWA
 
 - **Android (Chrome):** mở trang GitHub Pages, nhấn **CÀI ĐẶT ỨNG DỤNG** trong game và xác nhận. Nếu không xuất hiện lời nhắc, mở menu ⋮ → **Cài đặt ứng dụng** hoặc **Thêm vào màn hình chính**.
 - **iPhone/iPad (Safari):** nhấn Chia sẻ → **Thêm vào màn hình chính** → **Thêm**.
 - **Máy tính (Chrome/Edge):** dùng biểu tượng cài đặt trên thanh địa chỉ hoặc menu trình duyệt → **Install MAID EMPIRE**.
-- PWA cần HTTPS hoặc localhost. Sau khi cài, ứng dụng mở ở chế độ độc lập; Service Worker lưu tài nguyên tĩnh để hỗ trợ truy cập ngoại tuyến. Tiến trình game được lưu riêng trên thiết bị bằng LocalStorage.
+- PWA cần HTTPS hoặc localhost. Sau khi cài, ứng dụng mở ở chế độ độc lập; Service Worker lưu tài nguyên tĩnh để hỗ trợ truy cập ngoại tuyến. Tiến trình game không lưu trên thiết bị; người chơi phải đăng nhập Google và kết nối Cloudflare Worker để tải/lưu tiến trình.
 
 Biểu tượng ứng dụng: `icon.svg`. Tên ứng dụng, màu giao diện, phạm vi và chế độ hiển thị được khai báo trong `manifest.webmanifest`.
 
@@ -50,7 +50,7 @@ Bản tích hợp dùng Google Identity Services ở giao diện, Cloudflare Wor
    - \`GOOGLE_PRIVATE_KEY\`: giá trị \`private_key\` trong file JSON; giữ nguyên PEM hoặc dùng chuỗi có \`\\n\`.
 4. Sau khi Worker hoạt động, đặt URL Worker vào \`MAID_EMPIRE_API_URL\` trong đầu file \`cloud-sync.js\` (ví dụ URL workers.dev được Cloudflare cấp), rồi commit lại.
 
-Worker tự tạo các tab \`Players\`, \`GameSaves\`, \`SaveHistory\` và tiêu đề cột khi có người dùng đăng nhập lần đầu. Mỗi save được định danh bằng Google account \`sub\`, không dùng email làm khóa. Game vẫn lưu LocalStorage khi chưa đăng nhập hoặc Worker chưa cấu hình.
+Worker tự tạo các tab \`Players\`, \`GameSaves\`, \`SaveHistory\` và tiêu đề cột khi có người dùng đăng nhập lần đầu. Mỗi save được định danh bằng Google account \`sub\`, không dùng email làm khóa. Không có chế độ lưu cục bộ hoặc chơi ngoại tuyến. Người chơi chỉ được vào game sau khi đăng nhập Google và Worker tải/tạo tiến trình thành công.
 
 ### API
 - \`GET /health\`: kiểm tra Worker.
