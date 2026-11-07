@@ -14,7 +14,7 @@
     ["googleSyncStatus", "googleStartStatus"].forEach(id => { const el = $(id); if (el) el.textContent = message; });
   };
   const showAccount = () => {
-    const label = profile ? "Đã đăng nhập: " + (profile.name || profile.email) : "Chưa đăng nhập Google";
+    const label = profile ? "Đã đăng nhập: " + (profile.name || profile.email) : "Chưa kết nối tài khoản Google";
     ["googleAccount", "googleStartAccount"].forEach(id => { const el = $(id); if (el) el.textContent = label; });
     ["googleLogout", "googleStartLogout"].forEach(id => { const el = $(id); if (el) el.hidden = !profile; });
     ["googleLoginGame", "googleLoginStart"].forEach(id => { const el = $(id); if (el) el.hidden = !!profile; });
@@ -27,8 +27,8 @@
     });
     const gate = $("googleRequiredNotice");
     if (gate) gate.textContent = !profile
-      ? "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI"
-      : cloudReady ? "ĐÃ TẢI TIẾN TRÌNH ĐÁM MÂY · CÓ THỂ VÀO CHƠI" : "ĐANG XÁC THỰC VÀ TẢI TIẾN TRÌNH TỪ ĐÁM MÂY…";
+      ? "Vui lòng đăng nhập Google để bắt đầu hoặc tiếp tục. Tiến trình của bạn được lưu trên đám mây."
+      : cloudReady ? "Đã kết nối và tải tiến trình thành công. Bạn có thể vào chơi." : "Đang xác thực tài khoản và đồng bộ dữ liệu trò chơi…";
   };
   const decodePayload = token => {
     try { return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); }
@@ -116,7 +116,7 @@
     // Signing out locks the session; progress remains only in the cloud account.
     if (typeof clockPaused !== "undefined") clockPaused = true;
     if (typeof updateClock === "function") updateClock();
-    status("Đã đăng xuất. Bạn cần đăng nhập Google lại để tiếp tục chơi.");
+    status("Đã đăng xuất. Đăng nhập lại để truy cập tiến trình đã lưu trên đám mây.");
   }
   document.addEventListener("click", event => {
     const target = event.target;
@@ -125,7 +125,7 @@
     if (target.closest("#startContinue, #startNew") && !idToken) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      status("Bạn phải đăng nhập Google trước khi bắt đầu hoặc tiếp tục trò chơi.");
+      status("Hãy đăng nhập Google và chờ tải tiến trình hoàn tất trước khi vào trò chơi.");
       return;
     }
     if (target.closest("#menuSave, #save")) scheduleSync(true);
@@ -141,7 +141,7 @@
     if (!claims.exp || Number(claims.exp) * 1000 <= Date.now() + 30000) {
       try { sessionStorage.removeItem(SESSION_KEY); } catch {}
       showAccount();
-      status("Phiên Google đã hết hạn. Vui lòng đăng nhập lại.");
+      status("Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại để tải tiến trình.");
       return;
     }
     idToken = saved.token;
