@@ -9,6 +9,7 @@
   let lastSerialized = "";
   let syncTimer = 0;
   let syncing = false;
+  let saveQueued = false;
   let deleting = false;
   const $ = id => document.getElementById(id);
   const status = message => {
@@ -72,13 +73,14 @@
     showAccount();
   }
   async function syncNow() {
-    if (!idToken || !cloudReady || !API_BASE || syncing || deleting) return;
+    if (!idToken || !cloudReady || !API_BASE || deleting) return;
+    if (syncing) { saveQueued = true; return; }
     const raw = JSON.stringify(window.maidEmpire?.state?.() || null);
     if (!raw || raw === lastSerialized) return;
     syncing = true;
     try { await uploadCloud(); }
     catch (error) { status("Chưa thể lưu tiến trình: " + error.message); }
-    finally { syncing = false; }
+    finally { syncing = false; if (saveQueued && !deleting) { saveQueued = false; scheduleSync(true); } }
   }
   function scheduleSync(immediate = false) {
     if (!idToken || !cloudReady || !API_BASE) return;
