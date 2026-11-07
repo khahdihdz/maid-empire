@@ -42,7 +42,7 @@
       body: body ? JSON.stringify(body) : undefined
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.error || "Máy chủ lưu game phản hồi lỗi " + response.status);
+    if (!response.ok || !result.ok) throw new Error("Dịch vụ trò chơi đang gặp sự cố (" + response.status + "). Vui lòng thử lại sau.");
     return result;
   }
   async function uploadCloud() {
