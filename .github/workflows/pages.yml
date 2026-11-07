@@ -18,6 +18,8 @@ jobs:
           test -s index.html && test -s styles.css && test -s app.js && test -s campaign.js
           node --check app.js
           node --check campaign.js
+          node --check cloud-sync.js
+          node --check worker/index.js
           python3 -m json.tool manifest.webmanifest >/dev/null
       - name: Generate install icons
         run: |
