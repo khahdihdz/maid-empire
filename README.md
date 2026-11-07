@@ -1,6 +1,8 @@
 # MAID EMPIRE: THE DARK BUSINESS
 
-Game mô phỏng quản lý đế chế dịch vụ giải trí cao cấp trong thế giới ngầm hư cấu. Tất cả nhân vật đều từ 18 tuổi. Nội dung tập trung vào chiến lược kinh doanh, nhân sự, hợp đồng, quyền lực và hệ quả; không có mô tả tình dục tường minh.
+**MAID EMPIRE: THE DARK BUSINESS** là game mô phỏng quản lý đế chế giải trí cao cấp trong một thế giới ngầm hoàn toàn hư cấu. Người chơi vào vai nhà điều hành, bắt đầu với nguồn vốn ban đầu và từng bước xây dựng thương hiệu, tuyển dụng – phát triển đội ngũ, nhận cơ hội hợp tác, vận hành chương trình, mở rộng cơ sở và kiểm soát tài chính. Đằng sau những hợp đồng giá trị là cạnh tranh quyền lực, giao dịch bí mật, tai tiếng, vi phạm và áp lực điều tra ngày càng tăng. Mỗi quyết định đều tác động đến dòng tiền, danh tiếng và tương lai của đế chế.
+
+Trò chơi dành cho người từ **18 tuổi trở lên**. Tất cả nhân vật đều là người trưởng thành và các hoạt động nhạy cảm/phi pháp chỉ được mô phỏng bằng chỉ số, lựa chọn và hệ quả chiến lược; không có mô tả tình dục trực diện hay hướng dẫn phạm tội ngoài đời.
 
 ## Công nghệ
 - HTML5, CSS3, Vanilla JavaScript; không framework, không asset ngoài.
@@ -12,7 +14,7 @@ Game mô phỏng quản lý đế chế dịch vụ giải trí cao cấp trong 
 Mở `index.html` hoặc chạy `python3 -m http.server 8080`, sau đó truy cập localhost:8080. PWA yêu cầu HTTPS hoặc localhost.
 
 ## Gameplay
-Dashboard; tuyển dụng nhân vật 18+; hồ sơ nhân sự chi tiết; đào tạo và thưởng; nhận hợp đồng, phân công và hoàn tất; mạng lưới ngầm với rủi ro trừu tượng; nâng cấp cơ sở; sổ cái tài chính; chu kỳ ngày và nhật ký. Bản mở rộng bổ sung chiến dịch cốt truyện 4 chương với lựa chọn phân nhánh, hệ quả tài chính/danh tiếng/điều tra và nhiều kết cục. Tiến trình chiến dịch được lưu cùng dữ liệu game trên Google Sheets theo tài khoản.
+Dashboard điều hành; tuyển dụng nhân vật 18+ với hồ sơ, kỹ năng, tâm trạng, lòng trung thành và lương; đào tạo và thưởng; cơ hội hợp tác có thời hạn chạy theo đồng hồ game; hợp đồng và tiến trình thực hiện; chương trình giải trí người trưởng thành; mạng lưới ngầm với rủi ro, vi phạm và áp lực điều tra; nâng cấp cơ sở; sổ cái tài chính, nhật ký sự kiện và chu kỳ ngày tự động. Chiến dịch cốt truyện 4 chương có lựa chọn phân nhánh, hệ quả tài chính/danh tiếng/điều tra và nhiều kết cục. Có tính năng nạp tiền trong game qua QR với các gói 50.000–1.000.000 VND, tỷ lệ quy đổi 1:1.000 (ví dụ 50.000 VND nhận 50.000.000 VND tiền game); tính năng này chỉ hoạt động sau khi cấu hình và kiểm thử hệ thống thanh toán.
 
 ## Cài đặt PWA
 
