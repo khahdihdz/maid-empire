@@ -271,7 +271,11 @@ export default {
         const result = await loadSave(env, profile);
         return json({ ok: true, profile, ...result }, 200, allowed);
       }
-      if (url.pathname === "/api/account/delete-data" && request.method === "POST") {\n        const result = await deleteMyData(env, profile);\n        return json({ ok: true, ...result }, 200, allowed);\n      }\n      if (url.pathname === "/api/save" && request.method === "POST") {
+      if (url.pathname === "/api/account/delete-data" && request.method === "POST") {
+        const result = await deleteMyData(env, profile);
+        return json({ ok: true, ...result }, 200, allowed);
+      }
+      if (url.pathname === "/api/save" && request.method === "POST") {
         const body = await request.json();
         if (!body.save || typeof body.save !== "object" || Array.isArray(body.save)) return json({ ok: false, error: "Save không hợp lệ." }, 400, allowed);
         const result = await saveGame(env, profile, body.save);
