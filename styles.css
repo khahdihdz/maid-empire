@@ -9,7 +9,7 @@
 
 /* PWA install panel */
 .install-panel{display:flex;align-items:center;gap:15px;padding:14px 17px;margin:0 0 22px;background:linear-gradient(105deg,#2c1830,#171321);border:1px solid #79436f;border-radius:8px;box-shadow:0 8px 28px #08050d66}
-.install-icon{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;border:1px solid var(--gold);border-radius:13px;color:var(--gold);font-size:28px;background:#21162a}
+.install-icon{width:46px;height:46px;flex:0 0 46px;display:block;object-fit:cover;border:1px solid #e34ac5;border-radius:13px;box-shadow:0 0 12px #d42ca966;background:#21162a}
 .install-copy{display:grid;gap:3px;flex:1;min-width:0}.install-copy b{font-size:11px;letter-spacing:.08em;color:var(--pink)}.install-copy span{font-size:11px;color:var(--muted)}
 #pwaInstall{white-space:nowrap;font-size:10px}#pwaInstall:disabled{opacity:.7;cursor:default}
 .install-guide{padding:14px;background:#120d17;border:1px solid var(--line);border-radius:6px;margin:14px 0}.install-guide b{color:var(--gold)}.install-guide ol{padding-left:20px;color:var(--muted);font-size:12px}.install-guide li{margin:7px 0}
