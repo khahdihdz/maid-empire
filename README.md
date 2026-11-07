@@ -60,7 +60,7 @@ Worker tự tạo các tab \`Players\`, \`GameSaves\`, \`SaveHistory\` và tiêu
 
 ## Nạp tiền qua QR VietQR / SePay
 
-Giao diện có các gói nạp cố định 50.000 / 100.000 / 200.000 / 500.000 / 1.000.000 VND. Mỗi yêu cầu có mã chuyển khoản riêng, QR điền sẵn số tiền và nội dung. Backend chỉ cộng tiền khi nhận webhook tiền vào đúng tài khoản, đúng mã và đúng số tiền.
+Giao diện có các gói nạp cố định 50.000 / 100.000 / 200.000 / 500.000 / 1.000.000 VND. Tỷ lệ quy đổi là **1:1.000**: mỗi 1 VND thanh toán được cộng 1.000 VND tiền game. Ví dụ gói 50.000 VND nhận 50.000.000 VND tiền game. Mỗi yêu cầu có mã chuyển khoản riêng, QR điền sẵn số tiền thật cần chuyển và nội dung. Backend chỉ cộng tiền game theo tỷ lệ 1:1.000 khi nhận webhook tiền vào đúng tài khoản, đúng mã và đúng số tiền.
 
 ### Cấu hình trước khi bật nhận tiền thật
 
