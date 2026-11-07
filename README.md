@@ -56,3 +56,24 @@ Worker tự tạo các tab \`Players\`, \`GameSaves\`, \`SaveHistory\` và tiêu
 - \`GET /health\`: kiểm tra Worker.
 - \`GET /api/load\`: đọc save của tài khoản Google đang đăng nhập.
 - \`POST /api/save\`: ghi save và lịch sử đồng bộ.
+
+
+## Nạp tiền qua QR VietQR / SePay
+
+Giao diện có các gói nạp cố định 50.000 / 100.000 / 200.000 / 500.000 / 1.000.000 VND. Mỗi yêu cầu có mã chuyển khoản riêng, QR điền sẵn số tiền và nội dung. Backend chỉ cộng tiền khi nhận webhook tiền vào đúng tài khoản, đúng mã và đúng số tiền.
+
+### Cấu hình trước khi bật nhận tiền thật
+
+Worker cần các biến:
+- `PAY_BANK_ACCOUNT`: số tài khoản nhận tiền.
+- `PAY_BANK_CODE`: mã ngân hàng theo chuẩn VietQR (ví dụ VCB, MB, TCB...).
+- `PAY_BANK_NAME`: tên ngân hàng (chỉ dùng cho quản trị nếu cần).
+
+Worker Secret:
+- `SEPAY_WEBHOOK_API_KEY`: API Key dùng xác thực webhook; không đưa vào mã nguồn hoặc frontend.
+
+Tạo webhook trong SePay: URL `https://maid-empire-api.khahdihdz.workers.dev/api/sepay/webhook`, sự kiện chỉ tiền vào, định dạng JSON, xác thực API Key. Header SePay gửi phải là `Authorization: Apikey <API_KEY>`. Sau khi cấu hình, kiểm tra bằng giao dịch thử trước khi mở cho người chơi.
+
+API dành cho phiên Google đã xác thực: `POST /api/topup/create`, `GET /api/topup/status`, `GET /api/topup/history`. Endpoint webhook nhận callback SePay không yêu cầu Google login nhưng bắt buộc API Key.
+
+**Lưu ý an toàn:** phiên bản hiện tại ghi đơn nạp, giao dịch và save vào Google Sheets. Sheets không có giao dịch nguyên tử hoặc ràng buộc UNIQUE; vì vậy không nên mở nạp tiền thật quy mô lớn trước khi chuyển sổ cái thanh toán sang Cloudflare D1 (unique transaction ID + atomic update) và kiểm thử webhook đồng thời/retry. Không nhập API Key hay khóa bí mật vào chat hoặc commit Git.
