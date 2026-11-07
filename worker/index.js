@@ -193,9 +193,10 @@ async function handleSePayWebhook(request,env){
  const saves=await readRows(env,"GameSaves!A2:E"),saveIdx=saves.findIndex(r=>r[0]===order[1]);
  if(saveIdx<0||!saves[saveIdx][3])return json({success:false,error:"Player save not found"},500);
  let save;try{save=JSON.parse(saves[saveIdx][3])}catch{return json({success:false,error:"Invalid player save"},500)}
- save.cash=(Number(save.cash)||0)+amount;
+ const creditAmount=Number(order[9])||amount*TOPUP_RATE;
+ save.cash=(Number(save.cash)||0)+creditAmount;
  if(!Array.isArray(save.ledger))save.ledger=[];
- save.ledger.unshift({name:"Nạp tiền qua QR",n:amount,income:true,day:Number(save.day)||1,time:"",external:true});
+ save.ledger.unshift({name:"Nạp tiền qua QR",n:creditAmount,income:true,day:Number(save.day)||1,time:"",external:true});
  if(!Array.isArray(save.journal))save.journal=[];
  save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game");
  save.journal=save.journal.slice(0,300);
@@ -241,6 +242,28 @@ export default {
         if (!body.save || typeof body.save !== "object" || Array.isArray(body.save)) return json({ ok: false, error: "Save không hợp lệ." }, 400, allowed);
         const result = await saveGame(env, profile, body.save);
         return json({ ok: true, ...result }, 200, allowed);
+      }
+      if (url.pathname === "/api/topup/create" && request.method === "POST") {
+        const body = await request.json();
+        const result = await createTopup(env, profile, body.amount);
+        return json({ ok: true, ...result }, 200, allowed);
+      }
+      if (url.pathname === "/api/topup/history" && request.method === "GET") {
+        const result = await getTopupHistory(env, profile);
+        const current = await loadSave(env, profile);
+        return json({ ok: true, orders: result, cashBalance: Number(current?.save?.cash) || 0 }, 200, allowed);
+      }
+      if (url.pathname === "/api/topup/status" && request.method === "GET") {
+        const orderId = url.searchParams.get("orderId") || "";
+        const rows = await readRows(env, "PaymentOrders!A2:J");
+        const order = rows.find(r => r[0] === orderId && r[1] === profile.sub);
+        if (!order) return json({ ok: false, error: "Không tìm thấy giao dịch." }, 404, allowed);
+        if (order[5] === "PENDING" && Date.now() > Date.parse(order[7])) {
+          const rowNo = rows.indexOf(order) + 2;
+          await updateRow(env, "PaymentOrders!A" + rowNo + ":J" + rowNo, [...order.slice(0,5), "EXPIRED", ...order.slice(6)]);
+          return json({ ok: true, status: "EXPIRED" }, 200, allowed);
+        }
+        return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE }, 200, allowed);
       }
       return json({ ok: false, error: "Not found" }, 404, allowed);
     } catch (error) {
