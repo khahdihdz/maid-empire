@@ -16,6 +16,17 @@
     ["googleAccount", "googleStartAccount"].forEach(id => { const el = $(id); if (el) el.textContent = label; });
     ["googleLogout", "googleStartLogout"].forEach(id => { const el = $(id); if (el) el.hidden = !profile; });
     ["googleLoginGame", "googleLoginStart"].forEach(id => { const el = $(id); if (el) el.hidden = !!profile; });
+    ["startContinue", "startNew"].forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.disabled = !profile;
+        el.setAttribute("aria-disabled", String(!profile));
+      }
+    });
+    const gate = $("googleRequiredNotice");
+    if (gate) gate.textContent = profile
+      ? "Đã xác thực tài khoản. Bạn có thể bắt đầu hoặc tiếp tục trò chơi."
+      : "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
   };
   const decodePayload = token => {
     try { return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); }
@@ -95,13 +106,26 @@
   function signOut() {
     idToken = "";
     profile = null;
+    lastSerialized = "";
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
     showAccount();
-    status("Đã đăng xuất Google. Save cục bộ vẫn được giữ nguyên.");
+    const menu = $("startMenu");
+    if (menu) menu.hidden = false;
+    // Signing out locks the session immediately; local save remains untouched.
+    if (typeof clockPaused !== "undefined") clockPaused = true;
+    if (typeof updateClock === "function") updateClock();
+    status("Đã đăng xuất. Bạn cần đăng nhập Google lại để tiếp tục chơi.");
   }
   document.addEventListener("click", event => {
     const target = event.target;
+    if (!target || !target.closest) return;
     if (target.closest("#googleLogout, #googleStartLogout")) { signOut(); return; }
+    if (target.closest("#startContinue, #startNew") && !idToken) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      status("Bạn phải đăng nhập Google trước khi bắt đầu hoặc tiếp tục trò chơi.");
+      return;
+    }
     if (target.closest("#menuSave, #save")) scheduleSync(true);
     if (target.closest("#startNew")) setTimeout(() => { lastSerialized = ""; scheduleSync(true); }, 500);
   });
@@ -114,5 +138,7 @@
     if (initGoogle() || attempts > 40) clearInterval(wait);
   }, 250);
   if (!API_BASE) status("Đăng nhập Google sẵn sàng. Cần triển khai Worker để bật lưu Google Sheet.");
+  const requiredNotice = $("googleRequiredNotice");
+  if (requiredNotice) requiredNotice.textContent = "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
   window.maidEmpireCloud = { signOut, syncNow, configured: !!API_BASE };
 })();
