@@ -27,3 +27,32 @@ Biểu tượng ứng dụng: `icon.svg`. Tên ứng dụng, màu giao diện, p
 Settings → Pages → Source: GitHub Actions. Workflow kiểm tra JavaScript/manifest và deploy nội dung tĩnh.
 
 Các hoạt động phi pháp chỉ là cơ chế chiến lược hư cấu, không phải hướng dẫn ngoài đời. Không có cơ chế cưỡng ép, mua bán người hoặc bóc lột; nhân sự có quyền từ chối và nghỉ việc.
+
+
+## Đăng nhập Google và lưu tiến trình lên Google Sheets
+
+Bản tích hợp dùng Google Identity Services ở giao diện, Cloudflare Worker để xác thực ID token và Google Sheets API bằng Service Account. Khóa riêng tư của Service Account chỉ nằm trong Cloudflare Worker Secrets; không đưa vào GitHub.
+
+### Chuẩn bị Google Cloud
+1. Bật **Google Sheets API** trong cùng dự án Google Cloud.
+2. Tạo Service Account, tạo khóa JSON và giữ file an toàn.
+3. Chia sẻ bảng tính có ID \`10vCDKjK-ZHOIK5wMMZ-0Nq4Pf30wxoaqGMlI64mbLCU\` cho email Service Account với quyền **Editor**.
+4. OAuth Client ID đã cấu hình trong \`cloud-sync.js\`. Trong Google Auth Platform, thêm origin \`https://khahdihdz.github.io\`.
+
+### Triển khai Cloudflare Worker
+1. Tạo Worker tên \`maid-empire-api\`, dùng mã trong \`worker/index.js\` (hoặc deploy từ thư mục này bằng Wrangler).
+2. Đặt biến môi trường:
+   - \`GOOGLE_CLIENT_ID\`: OAuth Client ID của MAID EMPIRE.
+   - \`SPREADSHEET_ID\`: \`10vCDKjK-ZHOIK5wMMZ-0Nq4Pf30wxoaqGMlI64mbLCU\`.
+   - \`ALLOWED_ORIGIN\`: \`https://khahdihdz.github.io\`.
+3. Đặt hai Worker Secrets:
+   - \`GOOGLE_SERVICE_ACCOUNT_EMAIL\`: email Service Account.
+   - \`GOOGLE_PRIVATE_KEY\`: giá trị \`private_key\` trong file JSON; giữ nguyên PEM hoặc dùng chuỗi có \`\\n\`.
+4. Sau khi Worker hoạt động, đặt URL Worker vào \`MAID_EMPIRE_API_URL\` trong đầu file \`cloud-sync.js\` (ví dụ URL workers.dev được Cloudflare cấp), rồi commit lại.
+
+Worker tự tạo các tab \`Players\`, \`GameSaves\`, \`SaveHistory\` và tiêu đề cột khi có người dùng đăng nhập lần đầu. Mỗi save được định danh bằng Google account \`sub\`, không dùng email làm khóa. Game vẫn lưu LocalStorage khi chưa đăng nhập hoặc Worker chưa cấu hình.
+
+### API
+- \`GET /health\`: kiểm tra Worker.
+- \`GET /api/load\`: đọc save của tài khoản Google đang đăng nhập.
+- \`POST /api/save\`: ghi save và lịch sử đồng bộ.
