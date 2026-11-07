@@ -170,5 +170,5 @@
   if (!API_BASE) status("Dịch vụ đồng bộ chưa sẵn sàng. Vui lòng thử lại sau.");
   const requiredNotice = $("googleRequiredNotice");
   if (requiredNotice) requiredNotice.textContent = "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
-  window.maidEmpireCloud = { signOut, syncNow, configured: !!API_BASE, get ready() { return cloudReady; } };
+  window.maidEmpireCloud = { signOut, syncNow, request: api, configured: !!API_BASE, get ready() { return cloudReady; }, get profile() { return profile; } };
 })();
