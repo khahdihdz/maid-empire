@@ -1,1 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#160f1b"/><circle cx="256" cy="256" r="188" fill="none" stroke="#d9b779" stroke-width="8"/><text x="256" y="310" font-family="Georgia" font-size="220" font-style="italic" text-anchor="middle" fill="#e58ab5">M</text><text x="370" y="365" font-family="Arial" font-size="42" fill="#d9b779">18+</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#35152f"/><stop offset=".55" stop-color="#170f22"/><stop offset="1" stop-color="#090b19"/></linearGradient>
+ <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff9ad7"/><stop offset=".5" stop-color="#ec48b2"/><stop offset="1" stop-color="#9c36ff"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff0ad"/><stop offset="1" stop-color="#c28b38"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<rect x="20" y="20" width="472" height="472" rx="96" fill="none" stroke="#9b4c91" stroke-width="5"/>
+<circle cx="256" cy="250" r="176" fill="#21152d" stroke="url(#pink)" stroke-width="10"/>
+<circle cx="256" cy="250" r="157" fill="none" stroke="#d9b779" stroke-opacity=".65" stroke-width="3"/>
+<path d="M154 165l25-66 72 51 72-51 35 66-19 48H170z" fill="url(#gold)" stroke="#fff0bd" stroke-width="6" stroke-linejoin="round"/>
+<circle cx="179" cy="158" r="10" fill="#fff4c8"/><circle cx="251" cy="145" r="12" fill="#fff4c8"/><circle cx="326" cy="158" r="10" fill="#fff4c8"/>
+<path d="M153 208h206l-12 25H165z" fill="#b97831"/>
+<text x="256" y="350" text-anchor="middle" font-family="Georgia,serif" font-size="174" font-weight="bold" font-style="italic" fill="url(#pink)" stroke="#ffe1f5" stroke-width="3" paint-order="stroke">M</text>
+<path d="M113 385h286" stroke="url(#gold)" stroke-width="5" stroke-linecap="round"/>
+<text x="256" y="431" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="800" letter-spacing="5" fill="#fff0fb">EMPIRE</text>
+<text x="256" y="470" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="700" letter-spacing="3" fill="#eaa0d4">THE DARK BUSINESS</text>
+</svg>
