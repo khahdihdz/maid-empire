@@ -136,3 +136,5 @@
 
 /* Prevent browser zoom gestures; preserve normal scrolling and game controls. */
 html,body{touch-action:pan-x pan-y;overscroll-behavior-x:none}button,a,input,select,textarea{touch-action:manipulation}
+
+.topup-qr{display:flex;justify-content:center;align-items:center;padding:14px;background:#fff;border-radius:14px;width:min(100%,340px);margin:14px auto}.topup-qr img{display:block;width:100%;max-width:300px;aspect-ratio:1;object-fit:contain}.topup-code{font-family:monospace;font-size:18px;font-weight:800;letter-spacing:.08em;text-align:center;overflow-wrap:anywhere}.topup-package{display:flex;flex-direction:column;gap:10px}.topup-package .price{font-size:20px}.topup-package button{width:100%}#topupHistory .row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#392d3c)}#topupHistory small{display:block;color:var(--muted,#aaa)}
