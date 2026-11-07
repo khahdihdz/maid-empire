@@ -48,7 +48,7 @@
 
 /* Mandatory Google sign-in gate */
 #startContinue:disabled,#startNew:disabled{opacity:.38;filter:grayscale(1);cursor:not-allowed;pointer-events:none}
-#googleRequiredNotice{display:block;text-align:center;color:#f0bf75;font-size:10px;font-weight:800;letter-spacing:.09em;line-height:1.6;padding:8px 10px;border:1px solid #79506a;border-radius:6px;background:#241624}
+#googleRequiredNotice{display:block;text-align:center;color:#ead9e8;font-size:11px;font-weight:500;letter-spacing:0;line-height:1.65;padding:11px 12px;border:1px solid #79506a;border-radius:7px;background:#241624}
 
 
 /* Responsive Google sign-in start screen: compact, scroll-safe on every viewport */
@@ -91,7 +91,7 @@
 #googleLoginStart{width:100%;min-width:0;display:flex;justify-content:center;overflow:hidden}
 #googleLoginStart iframe{max-width:100%}
 #googleStartLogout{max-width:100%;white-space:normal}
-#googleRequiredNotice{font-size:clamp(9px,1.8vw,10px);padding:7px 9px}
+#googleRequiredNotice{font-size:clamp(10px,2vw,11px);padding:9px 10px}
 #googleStartStatus{display:block;max-width:100%;overflow-wrap:anywhere}
 .start-footer{margin-top:clamp(10px,2vh,20px);font-size:clamp(8px,1.6vw,9px);line-height:1.5;overflow-wrap:anywhere}
 @media(max-width:600px){
