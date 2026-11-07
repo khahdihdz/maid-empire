@@ -4,6 +4,7 @@
   const API_BASE = (window.MAID_EMPIRE_API_URL || "").replace(/\/+$/, "");
   let idToken = "";
   let profile = null;
+  let cloudReady = false;
   let lastSerialized = "";
   let syncTimer = 0;
   let syncing = false;
@@ -19,7 +20,7 @@
     ["startContinue", "startNew"].forEach(id => {
       const el = $(id);
       if (el) {
-        el.disabled = !profile;
+        el.disabled = !profile || !cloudReady;
         el.setAttribute("aria-disabled", String(!profile));
       }
     });
@@ -43,56 +44,53 @@
     if (!response.ok || !result.ok) throw new Error(result.error || "Máy chủ lưu game phản hồi lỗi " + response.status);
     return result;
   }
-  async function uploadLocal() {
-    const raw = localStorage.getItem("maidEmpireSave");
-    if (!raw) throw new Error("Thiết bị chưa có tiến trình để lưu.");
-    const result = await api("/api/save", "POST", { save: JSON.parse(raw) });
-    lastSerialized = raw;
-    status("Đã đồng bộ lên Google Sheet · " + new Date(result.updatedAt).toLocaleString("vi-VN"));
+  async function uploadCloud() {
+    if (!window.maidEmpire?.state) throw new Error("Game chưa sẵn sàng.");
+    const save = window.maidEmpire.state();
+    const result = await api("/api/save", "POST", { save });
+    lastSerialized = JSON.stringify(save);
+    status("Đã lưu tiến trình lên Google Sheet · " + new Date(result.updatedAt).toLocaleString("vi-VN"));
   }
   async function syncOnLogin() {
-    if (!API_BASE) {
-      status("Đã đăng nhập Google. Worker chưa được triển khai/cấu hình nên chưa thể đồng bộ Sheet.");
-      return;
-    }
-    status("Đang kiểm tra tiến trình trên Google Sheet…");
+    cloudReady = false;
+    showAccount();
+    if (!API_BASE) throw new Error("Chưa cấu hình Cloudflare Worker. Không thể vào chơi khi chưa bật lưu đám mây.");
+    status("Đang xác thực máy chủ và tải tiến trình Google Sheet…");
     const cloud = await api("/api/load");
     if (cloud.save) {
-      const stamp = cloud.updatedAt ? new Date(cloud.updatedAt).toLocaleString("vi-VN") : "không rõ thời điểm";
-      if (confirm("Tìm thấy tiến trình Google Sheet cập nhật lúc " + stamp + ". Bạn muốn tải tiến trình này về thiết bị?")) {
-        localStorage.setItem("maidEmpireSave", JSON.stringify(cloud.save));
-        lastSerialized = JSON.stringify(cloud.save);
-        status("Đã tải tiến trình. Đang khởi động lại game…");
-        location.reload();
-        return;
-      }
-      status("Giữ tiến trình trên thiết bị. Dữ liệu Google Sheet chưa bị ghi đè.");
-      return;
+      window.maidEmpire.load(cloud.save);
+      lastSerialized = JSON.stringify(cloud.save);
+      status("Đã tải tiến trình từ Google Sheet.");
+    } else {
+      window.maidEmpire.reset();
+      await uploadCloud();
+      status("Đã tạo tiến trình mới và lưu trên Google Sheet.");
     }
-    status("Chưa có save trên Sheet. Đang sao lưu tiến trình hiện tại…");
-    await uploadLocal();
+    cloudReady = true;
+    showAccount();
   }
   async function syncNow() {
-    if (!idToken || !API_BASE || syncing) return;
-    const raw = localStorage.getItem("maidEmpireSave");
+    if (!idToken || !cloudReady || !API_BASE || syncing) return;
+    const raw = JSON.stringify(window.maidEmpire?.state?.() || null);
     if (!raw || raw === lastSerialized) return;
     syncing = true;
-    try { await uploadLocal(); }
+    try { await uploadCloud(); }
     catch (error) { status("Lưu đám mây chưa thành công: " + error.message); }
     finally { syncing = false; }
   }
   function scheduleSync(immediate = false) {
-    if (!idToken || !API_BASE) return;
+    if (!idToken || !cloudReady || !API_BASE) return;
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(syncNow, immediate ? 300 : 12000);
+    syncTimer = setTimeout(syncNow, immediate ? 300 : 5000);
   }
   function onCredential(response) {
     idToken = response.credential || "";
     const data = decodePayload(idToken);
     profile = { name: data.name || data.given_name || "Người chơi", email: data.email || "" };
+    cloudReady = false;
     showAccount();
-    status("Đã xác thực Google. Đang kết nối dịch vụ lưu game…");
-    syncOnLogin().catch(error => status("Đăng nhập thành công nhưng đồng bộ lỗi: " + error.message));
+    status("Đã xác thực Google. Đang tải tiến trình từ máy chủ…");
+    syncOnLogin().catch(error => { cloudReady = false; showAccount(); status("Chưa thể vào chơi: " + error.message); });
   }
   function initGoogle() {
     if (!window.google?.accounts?.id) return false;
@@ -106,12 +104,13 @@
   function signOut() {
     idToken = "";
     profile = null;
+    cloudReady = false;
     lastSerialized = "";
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
     showAccount();
     const menu = $("startMenu");
     if (menu) menu.hidden = false;
-    // Signing out locks the session immediately; local save remains untouched.
+    // Signing out locks the session; progress remains only in the cloud account.
     if (typeof clockPaused !== "undefined") clockPaused = true;
     if (typeof updateClock === "function") updateClock();
     status("Đã đăng xuất. Bạn cần đăng nhập Google lại để tiếp tục chơi.");
@@ -127,9 +126,9 @@
       return;
     }
     if (target.closest("#menuSave, #save")) scheduleSync(true);
-    if (target.closest("#startNew")) setTimeout(() => { lastSerialized = ""; scheduleSync(true); }, 500);
   });
   window.addEventListener("maid-empire-refresh", () => scheduleSync(false));
+  window.addEventListener("maid-empire-save", () => scheduleSync(true));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") scheduleSync(true); });
   showAccount();
   let attempts = 0;
@@ -137,8 +136,8 @@
     attempts++;
     if (initGoogle() || attempts > 40) clearInterval(wait);
   }, 250);
-  if (!API_BASE) status("Đăng nhập Google sẵn sàng. Cần triển khai Worker để bật lưu Google Sheet.");
+  if (!API_BASE) status("Chưa cấu hình máy chủ lưu đám mây. Bạn sẽ chưa thể vào chơi.");
   const requiredNotice = $("googleRequiredNotice");
   if (requiredNotice) requiredNotice.textContent = "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
-  window.maidEmpireCloud = { signOut, syncNow, configured: !!API_BASE };
+  window.maidEmpireCloud = { signOut, syncNow, configured: !!API_BASE, get ready() { return cloudReady; } };
 })();
