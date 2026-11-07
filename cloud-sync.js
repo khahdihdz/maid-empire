@@ -1,7 +1,7 @@
 (() => {
   const CLIENT_ID = "654545046885-qpli58rerh6d2b4t8f5bhijr10ibeu4v.apps.googleusercontent.com";
   // Set this after deploying worker/maid-empire-api.
-  const API_BASE = (window.MAID_EMPIRE_API_URL || "").replace(/\/+$/, "");
+  const API_BASE = (window.MAID_EMPIRE_API_URL || "https://maid-empire-api.khahdihdz.workers.dev").replace(/\/+$/, "");
   let idToken = "";
   let profile = null;
   let cloudReady = false;
