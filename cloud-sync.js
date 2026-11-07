@@ -170,5 +170,21 @@
   if (!API_BASE) status("Dịch vụ đồng bộ chưa sẵn sàng. Vui lòng thử lại sau.");
   const requiredNotice = $("googleRequiredNotice");
   if (requiredNotice) requiredNotice.textContent = "BẮT BUỘC ĐĂNG NHẬP GOOGLE ĐỂ VÀO TRÒ CHƠI";
-  window.maidEmpireCloud = { signOut, syncNow, request: api, configured: !!API_BASE, get ready() { return cloudReady; }, get profile() { return profile; } };
+  async function deleteMyData() {
+    if (!idToken || !cloudReady) throw new Error("Vui lòng đăng nhập và tải xong dữ liệu trước khi xóa.");
+    const result = await api("/api/account/delete-data", "POST", {});
+    cloudReady = false;
+    lastSerialized = "";
+    idToken = "";
+    profile = null;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+    if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect();
+    if (window.maidEmpire?.reset) window.maidEmpire.reset();
+    const menu = $("startMenu");
+    if (menu) menu.hidden = false;
+    showAccount();
+    status("Đã xóa dữ liệu của tài khoản này. Dữ liệu người chơi khác không bị ảnh hưởng.");
+    return result;
+  }
+  window.maidEmpireCloud = { signOut, syncNow, deleteMyData, request: api, configured: !!API_BASE, get ready() { return cloudReady; }, get profile() { return profile; } };
 })();
