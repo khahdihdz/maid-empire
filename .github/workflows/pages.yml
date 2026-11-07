@@ -19,7 +19,15 @@ jobs:
           node --check app.js
           node --check campaign.js
           python3 -m json.tool manifest.webmanifest >/dev/null
-      - name: Generate install icons\n        run: |\n          sudo apt-get update\n          sudo apt-get install -y imagemagick\n          test -s icon.png\n          convert icon.png -resize 192x192 -gravity center -extent 192x192 PNG32:icon-192.png\n          convert icon.png -resize 512x512 -gravity center -extent 512x512 PNG32:icon-512.png\n          convert icon.png -resize 180x180 -gravity center -extent 180x180 PNG32:apple-touch-icon.png\n          identify icon-192.png icon-512.png apple-touch-icon.png\n      - name: Publish static PWA to gh-pages
+      - name: Generate install icons
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          test -s icon.png
+          convert icon.png -resize 192x192 -gravity center -extent 192x192 PNG32:icon-192.png
+          convert icon.png -resize 512x512 -gravity center -extent 512x512 PNG32:icon-512.png
+          convert icon.png -resize 180x180 -gravity center -extent 180x180 PNG32:apple-touch-icon.png
+          identify icon-192.png icon-512.png apple-touch-icon.png\n      - name: Publish static PWA to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
