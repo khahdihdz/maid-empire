@@ -19,7 +19,7 @@ Dashboard; tuyển dụng nhân vật 18+; hồ sơ nhân sự chi tiết; đào
 - **Android (Chrome):** mở trang GitHub Pages, nhấn **CÀI ĐẶT ỨNG DỤNG** trong game và xác nhận. Nếu không xuất hiện lời nhắc, mở menu ⋮ → **Cài đặt ứng dụng** hoặc **Thêm vào màn hình chính**.
 - **iPhone/iPad (Safari):** nhấn Chia sẻ → **Thêm vào màn hình chính** → **Thêm**.
 - **Máy tính (Chrome/Edge):** dùng biểu tượng cài đặt trên thanh địa chỉ hoặc menu trình duyệt → **Install MAID EMPIRE**.
-- PWA cần HTTPS hoặc localhost. Sau khi cài, ứng dụng mở ở chế độ độc lập; Service Worker lưu tài nguyên tĩnh để hỗ trợ truy cập ngoại tuyến. Tiến trình game không lưu trên thiết bị; người chơi phải đăng nhập Google và kết nối Cloudflare Worker để tải/lưu tiến trình.
+- PWA cần HTTPS hoặc localhost. Sau khi cài, ứng dụng mở ở chế độ độc lập; Service Worker chỉ lưu tài nguyên giao diện; để chơi và lưu tiến trình bắt buộc phải có mạng, đăng nhập Google và kết nối Cloudflare Worker. Tiến trình game không lưu trên thiết bị; người chơi phải đăng nhập Google và kết nối Cloudflare Worker để tải/lưu tiến trình.
 
 Biểu tượng ứng dụng: `icon.svg`. Tên ứng dụng, màu giao diện, phạm vi và chế độ hiển thị được khai báo trong `manifest.webmanifest`.
 
