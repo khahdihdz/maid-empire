@@ -2,41 +2,12 @@
   "name": "MAID EMPIRE: THE DARK BUSINESS",
   "short_name": "MAID EMPIRE",
   "description": "Game mô phỏng quản lý đế chế giải trí 18+ hư cấu: nhân sự, hợp đồng, cơ sở, tài chính, chiến dịch và mạng lưới ngầm.",
-  "id": "./",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
-  "orientation": "any",
-  "background_color": "#100c13",
-  "theme_color": "#130d18",
-  "lang": "vi",
-  "categories": [
-    "games",
-    "entertainment"
-  ],
-  "prefer_related_applications": false,
+  "id": "./", "start_url": "./", "scope": "./", "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any", "background_color": "#100c13", "theme_color": "#130d18", "lang": "vi",
+  "categories": ["games", "entertainment"], "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"maskable"}
   ]
 }
