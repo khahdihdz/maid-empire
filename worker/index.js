@@ -147,7 +147,7 @@ async function deleteMyData(env, profile) {
     readRows(env, "Players!A2:D"),
     readRows(env, "GameSaves!A2:E"),
     readRows(env, "SaveHistory!A2:E"),
-    readRows(env, "PaymentOrders!A2:J"),
+    readRows(env, "PaymentOrders!A2:L"),
     readRows(env, "PaymentTransactions!A2:F"),
     sheetsRequest(env, "?fields=sheets.properties(sheetId,title)")
   ]);
