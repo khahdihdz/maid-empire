@@ -191,7 +191,9 @@ async function saveGame(env, profile, save) {
 
 const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];
 const TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 tiền trong game
-const TOPUP_BONUS = {50000:5,100000:8,200000:12,500000:18,1000000:25};
+// Không thưởng tiền game; ghi nhận danh tiếng và ảnh hưởng theo mức nạp thực tế.
+const TOPUP_REPUTATION_STEP = 100000;
+const TOPUP_INFLUENCE_STEP = 500000;
 function makePaymentCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="ME";for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
 async function createTopup(env,profile,amount){
  amount=Number(amount);
@@ -204,7 +206,7 @@ async function createTopup(env,profile,amount){
  const promoLabel=bonusPercent?"Ưu đãi nạp "+bonusPercent+"%":"Không có ưu đãi";
  await appendRow(env,"PaymentOrders!A:L",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount),String(bonusAmount),promoLabel]);
  const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
- return {orderId,amount,creditAmount,bonusAmount,bonusPercent,totalCredit:creditAmount+bonusAmount,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
+ return {orderId,amount,creditAmount,bonusAmount:0,bonusPercent:0,totalCredit:creditAmount,reputationGain,influenceGain,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
 }
 async function getTopupHistory(env,profile){
  const rows=await readRows(env,"PaymentOrders!A2:L");
@@ -234,15 +236,15 @@ async function handleSePayWebhook(request,env){
  const bonusAmount=Number(order[10])||0,totalCredit=creditAmount+bonusAmount;
  save.cash=(Number(save.cash)||0)+totalCredit;
  if(!Array.isArray(save.ledger))save.ledger=[];
- save.ledger.unshift({name:"Nạp tiền qua QR",n:totalCredit,income:true,day:Number(save.day)||1,time:"",external:true});
+ save.ledger.unshift({name:"Nạp tiền qua QR",n:creditAmount,income:true,day:Number(save.day)||1,time:"",external:true});
  if(!Array.isArray(save.journal))save.journal=[];
- save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game"+(bonusAmount?" · Thưởng ưu đãi +"+new Intl.NumberFormat("vi-VN").format(bonusAmount):""));
+ save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game · Danh tiếng +"+(save.rep-oldRep)+" · Ảnh hưởng +"+(save.influence-oldInfluence));
  save.journal=save.journal.slice(0,300);
  const now=new Date().toISOString();
  await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
  await updateRow(env,"PaymentOrders!A"+rowNo+":L"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(bonusAmount),order[11]||""]);
  await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
- await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" (base "+creditAmount+", bonus "+bonusAmount+")",txId]);
+ await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" credits; reputation +"+(save.rep-oldRep)+"; influence +"+(save.influence-oldInfluence),txId]);
  return json({success:true});
 }
 
