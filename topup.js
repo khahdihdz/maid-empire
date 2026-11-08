@@ -52,9 +52,9 @@
       const r=await api().request('/api/topup/create','POST',{amount});
       activeOrder=r;$('topupCheckout').hidden=false;$('topupQr').src=r.qrUrl;
       const base=Number(r.creditAmount)||amount*rate;
-      $('topupAmount').innerHTML='Thanh toán: <b>'+fmt(r.amount)+'</b><br>Tiền game nhận: <b>'+fmt(base)+'</b><br>Danh tiếng: +'+(r.reputationGain||Math.floor(amount/100000))+'<br>Ảnh hưởng: +'+(r.influenceGain||Math.floor(amount/500000))+'<br><strong>Không có thưởng tiền game</strong>';
+      $('topupAmount').innerHTML='Thanh toán: <b>'+fmt(r.amount)+'</b><br>Tiền game nhận: <b>'+fmt(base)+'</b><br>Danh tiếng dự kiến: +'+(r.reputationGain??Math.floor(amount/100000))+'<br>Ảnh hưởng dự kiến: +'+(r.influenceGain??Math.floor(amount/500000))+'<br><strong>Không có thưởng tiền game</strong>';
       $('topupCode').textContent=r.code;$('topupExpiry').textContent='Hết hạn lúc '+new Date(r.expiresAt).toLocaleString('vi-VN');
-      $('topupMessage').textContent='Danh tiếng và ảnh hưởng được cộng tự động khi xác nhận thanh toán.';
+      $('topupMessage').textContent='SePay sẽ tự động xác nhận chuyển khoản. Danh tiếng và ảnh hưởng chỉ được cộng sau khi webhook hợp lệ.';
       status('Đang chờ thanh toán');clearInterval(pollTimer);pollTimer=setInterval(check,5000);await refresh();
     }catch(e){status('Không thể tạo giao dịch');alert(e.message)}
   }
