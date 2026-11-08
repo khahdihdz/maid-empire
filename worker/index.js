@@ -92,7 +92,7 @@ async function ensureTabs(env) {
     { range: "Players!A1:D1", values: [["Google Sub", "Email", "Tên hiển thị", "Lần đăng nhập cuối"]] },
     { range: "GameSaves!A1:E1", values: [["Google Sub", "Email", "Tên hiển thị", "Save JSON", "Cập nhật lúc"]] },
     { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] },
-    { range: "PaymentOrders!A1:L1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền thanh toán", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay", "Tiền game cơ bản", "Thưởng khuyến mãi", "Tên ưu đãi"]] },
+    { range: "PaymentOrders!A1:L1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền thanh toán", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay", "Tiền game nhận", "Danh tiếng cộng", "Ảnh hưởng cộng"]] },
     { range: "PaymentTransactions!A1:F1", values: [["Mã giao dịch SePay", "Mã đơn", "Số tiền", "Mã tham chiếu", "Nội dung", "Thời gian nhận"]] }
   ];
   await Promise.all(headers.map(x => sheetsRequest(env, "/values/" + encodeURIComponent(x.range) + "?valueInputOption=RAW", {
@@ -191,61 +191,92 @@ async function saveGame(env, profile, save) {
 
 const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];
 const TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 tiền trong game
-// Không thưởng tiền game; ghi nhận danh tiếng và ảnh hưởng theo mức nạp thực tế.
-const TOPUP_REPUTATION_STEP = 100000;
-const TOPUP_INFLUENCE_STEP = 500000;
-function makePaymentCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="ME";for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
+const TOPUP_REPUTATION_STEP = 100000; // +1 danh tiếng / 100.000 VND
+const TOPUP_INFLUENCE_STEP = 500000; // +1 ảnh hưởng / 500.000 VND
+function makePaymentCode(){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out="ME";
+  for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
 async function createTopup(env,profile,amount){
- amount=Number(amount);
- if(!TOPUP_PACKAGES.includes(amount))throw new Error("Gói nạp không hợp lệ.");
- if(!env.PAY_BANK_ACCOUNT||!env.PAY_BANK_CODE)throw new Error("Chức năng nạp tiền chưa được cấu hình đầy đủ.");
- const orderId="ME"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
- const code=makePaymentCode(),now=Date.now(),expires=new Date(now+15*60*1000).toISOString();
- const creditAmount=amount*TOPUP_RATE;
- const bonusPercent=TOPUP_BONUS[amount]||0,bonusAmount=Math.floor(creditAmount*bonusPercent/100);
- const promoLabel=bonusPercent?"Ưu đãi nạp "+bonusPercent+"%":"Không có ưu đãi";
- await appendRow(env,"PaymentOrders!A:L",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount),String(bonusAmount),promoLabel]);
- const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
- return {orderId,amount,creditAmount,bonusAmount:0,bonusPercent:0,totalCredit:creditAmount,reputationGain,influenceGain,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
+  amount=Number(amount);
+  if(!TOPUP_PACKAGES.includes(amount))throw new Error("Gói nạp không hợp lệ.");
+  if(!env.PAY_BANK_ACCOUNT||!env.PAY_BANK_CODE)throw new Error("Thiếu PAY_BANK_ACCOUNT hoặc PAY_BANK_CODE trên Worker.");
+  const orderId="ME"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
+  const code=makePaymentCode(),now=Date.now(),expires=new Date(now+15*60*1000).toISOString();
+  const creditAmount=amount*TOPUP_RATE;
+  const reputationGain=Math.floor(amount/TOPUP_REPUTATION_STEP);
+  const influenceGain=Math.floor(amount/TOPUP_INFLUENCE_STEP);
+  const promoLabel="Danh tiếng và ảnh hưởng theo mức nạp";
+  await appendRow(env,"PaymentOrders!A:L",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount),String(reputationGain),String(influenceGain)]);
+  const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
+  return {orderId,amount,creditAmount,bonusAmount:0,totalCredit:creditAmount,reputationGain,influenceGain,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
 }
 async function getTopupHistory(env,profile){
- const rows=await readRows(env,"PaymentOrders!A2:L");
- return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,bonusAmount:Number(r[10])||0,promoLabel:r[11]||"",totalCredit:(Number(r[9])||Number(r[3])*TOPUP_RATE)+(Number(r[10])||0),code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]}));
+  const rows=await readRows(env,"PaymentOrders!A2:L");
+  return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({
+    orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,
+    bonusAmount:0,totalCredit:Number(r[9])||Number(r[3])*TOPUP_RATE,
+    reputationGain:Number(r[10])||0,influenceGain:Number(r[11])||0,
+    code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]
+  }));
 }
 async function handleSePayWebhook(request,env){
- if(!env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Webhook not configured"},503);
- if((request.headers.get("Authorization")||"")!=="Apikey "+env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Unauthorized"},401);
- let body;try{body=await request.json()}catch{return json({success:false,error:"Invalid JSON"},400)}
- const txId=String(body.id||""),amount=Number(body.transferAmount),direction=String(body.transferType||"").toLowerCase();
- if(!txId||!Number.isSafeInteger(amount)||amount<=0||direction!=="in")return json({success:false,error:"Invalid transaction"},400);
- if(env.PAY_BANK_ACCOUNT&&String(body.accountNumber||"")!==String(env.PAY_BANK_ACCOUNT))return json({success:false,error:"Wrong receiving account"},400);
- const searchable=(String(body.code||"")+" "+String(body.content||"")).toUpperCase();
- const orders=await readRows(env,"PaymentOrders!A2:L");
- const idx=orders.findIndex(r=>r[4]&&searchable.includes(String(r[4]).toUpperCase()));
- if(idx<0)return json({success:true,ignored:true});
- const order=orders[idx],rowNo=idx+2;
- if(order[5]==="PAID")return json({success:true,duplicate:true});
- if(order[5]!=="PENDING"||Date.now()>Date.parse(order[7]))return json({success:true,ignored:true});
- if(Number(order[3])!==amount)return json({success:false,error:"Amount mismatch"},400);
- const transactions=await readRows(env,"PaymentTransactions!A2:F");
- if(transactions.some(r=>String(r[0])===txId))return json({success:true,duplicate:true});
- const saves=await readRows(env,"GameSaves!A2:E"),saveIdx=saves.findIndex(r=>r[0]===order[1]);
- if(saveIdx<0||!saves[saveIdx][3])return json({success:false,error:"Player save not found"},500);
- let save;try{save=JSON.parse(saves[saveIdx][3])}catch{return json({success:false,error:"Invalid player save"},500)}
- const creditAmount=Number(order[9])||amount*TOPUP_RATE;
- const bonusAmount=Number(order[10])||0,totalCredit=creditAmount+bonusAmount;
- save.cash=(Number(save.cash)||0)+totalCredit;
- if(!Array.isArray(save.ledger))save.ledger=[];
- save.ledger.unshift({name:"Nạp tiền qua QR",n:creditAmount,income:true,day:Number(save.day)||1,time:"",external:true});
- if(!Array.isArray(save.journal))save.journal=[];
- save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game · Danh tiếng +"+(save.rep-oldRep)+" · Ảnh hưởng +"+(save.influence-oldInfluence));
- save.journal=save.journal.slice(0,300);
- const now=new Date().toISOString();
- await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
- await updateRow(env,"PaymentOrders!A"+rowNo+":L"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(bonusAmount),order[11]||""]);
- await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
- await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" credits; reputation +"+(save.rep-oldRep)+"; influence +"+(save.influence-oldInfluence),txId]);
- return json({success:true});
+  if(!env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Webhook not configured"},503);
+  const auth=request.headers.get("Authorization")||"";
+  if(auth!=="Apikey "+env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Unauthorized"},401);
+  let body;
+  try{body=await request.json()}catch{return json({success:false,error:"Invalid JSON"},400)}
+  const txId=String(body.id||""),amount=Number(body.transferAmount),direction=String(body.transferType||"").toLowerCase();
+  if(!txId||!Number.isSafeInteger(amount)||amount<=0||direction!=="in")return json({success:false,error:"Invalid transaction"},400);
+  if(env.PAY_BANK_ACCOUNT&&body.accountNumber&&String(body.accountNumber)!==String(env.PAY_BANK_ACCOUNT))return json({success:false,error:"Wrong receiving account"},400);
+  const searchable=(String(body.code||"")+" "+String(body.content||"")+" "+String(body.description||"")).toUpperCase();
+  const orders=await readRows(env,"PaymentOrders!A2:L");
+  const idx=orders.findIndex(r=>r[4]&&searchable.includes(String(r[4]).toUpperCase()));
+  if(idx<0)return json({success:true,ignored:true,reason:"payment_code_not_found"});
+  const order=orders[idx],rowNo=idx+2;
+  if(Number(order[3])!==amount)return json({success:false,error:"Amount mismatch"},400);
+  const transactions=await readRows(env,"PaymentTransactions!A2:F");
+  const knownTx=transactions.find(r=>String(r[0])===txId);
+  if(knownTx&&String(knownTx[1])!==String(order[0]))return json({success:false,error:"Transaction already used"},409);
+  if(order[5]==="PAID"){
+    if(!knownTx)await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),new Date().toISOString()]);
+    return json({success:true,duplicate:true});
+  }
+  if(!["PENDING","PROCESSING"].includes(order[5]))return json({success:true,ignored:true,reason:"order_not_payable"});
+  if(Date.now()>Date.parse(order[7]))return json({success:true,ignored:true,reason:"order_expired"});
+  const saves=await readRows(env,"GameSaves!A2:E"),saveIdx=saves.findIndex(r=>r[0]===order[1]);
+  if(saveIdx<0||!saves[saveIdx][3])return json({success:false,error:"Player save not found"},500);
+  let save;
+  try{save=JSON.parse(saves[saveIdx][3])}catch{return json({success:false,error:"Invalid player save"},500)}
+  if(!Array.isArray(save.ledger))save.ledger=[];
+  const prior=save.ledger.find(x=>x&&x.sepayTxId===txId);
+  const creditAmount=Number(order[9])||amount*TOPUP_RATE;
+  let appliedRep=prior?Number(prior.reputationGain)||0:0;
+  let appliedInfluence=prior?Number(prior.influenceGain)||0:0;
+  if(!prior){
+    const oldRep=Math.max(0,Math.min(100,Number(save.rep)||0));
+    const oldInfluence=Math.max(0,Math.min(100,Number(save.influence)||0));
+    const requestedRep=Math.max(0,Number(order[10])||Math.floor(amount/TOPUP_REPUTATION_STEP));
+    const requestedInfluence=Math.max(0,Number(order[11])||Math.floor(amount/TOPUP_INFLUENCE_STEP));
+    save.cash=(Number(save.cash)||0)+creditAmount;
+    save.rep=Math.min(100,oldRep+requestedRep);
+    save.influence=Math.min(100,oldInfluence+requestedInfluence);
+    appliedRep=save.rep-oldRep;
+    appliedInfluence=save.influence-oldInfluence;
+    save.ledger.unshift({name:"Nạp tiền qua SePay",n:creditAmount,income:true,day:Number(save.day)||1,time:"",external:true,sepayTxId:txId,reputationGain:appliedRep,influenceGain:appliedInfluence});
+    if(!Array.isArray(save.journal))save.journal=[];
+    save.journal.unshift("SePay xác nhận nạp tiền · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game · Danh tiếng +"+appliedRep+" · Ảnh hưởng +"+appliedInfluence);
+    save.journal=save.journal.slice(0,300);
+    const now=new Date().toISOString();
+    await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
+  }
+  const now=new Date().toISOString();
+  await updateRow(env,"PaymentOrders!A"+rowNo+":L"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(appliedRep),String(appliedInfluence)]);
+  if(!knownTx)await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
+  await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+creditAmount+" credits; reputation +"+appliedRep+"; influence +"+appliedInfluence,txId]);
+  return json({success:true,credited:creditAmount,reputationGain:appliedRep,influenceGain:appliedInfluence});
 }
 
 export default {
@@ -307,7 +338,7 @@ export default {
           await updateRow(env, "PaymentOrders!A" + rowNo + ":J" + rowNo, [...order.slice(0,5), "EXPIRED", ...order.slice(6)]);
           return json({ ok: true, status: "EXPIRED" }, 200, allowed);
         }
-        return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE, bonusAmount: Number(order[10]) || 0, totalCredit: (Number(order[9]) || Number(order[3]) * TOPUP_RATE) + (Number(order[10]) || 0), promoLabel: order[11] || "" }, 200, allowed);
+        return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE, bonusAmount: 0, totalCredit: Number(order[9]) || Number(order[3]) * TOPUP_RATE, reputationGain: Number(order[10]) || 0, influenceGain: Number(order[11]) || 0 }, 200, allowed);
       }
       return json({ ok: false, error: "Not found" }, 404, allowed);
     } catch (error) {
