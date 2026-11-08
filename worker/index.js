@@ -240,9 +240,9 @@ async function handleSePayWebhook(request,env){
  save.journal=save.journal.slice(0,300);
  const now=new Date().toISOString();
  await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
- await updateRow(env,"PaymentOrders!A"+rowNo+":J"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(bonusAmount),order[11]||""]);
+ await updateRow(env,"PaymentOrders!A"+rowNo+":L"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(bonusAmount),order[11]||""]);
  await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
- await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" (base "+creditAmount+", bonus "+bonusAmount+"),txId]);
+ await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" (base "+creditAmount+", bonus "+bonusAmount+")",txId]);
  return json({success:true});
 }
 
