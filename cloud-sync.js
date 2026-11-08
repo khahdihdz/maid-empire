@@ -44,7 +44,7 @@
       body: body ? JSON.stringify(body) : undefined
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error("Dịch vụ trò chơi đang gặp sự cố (" + response.status + "). Vui lòng thử lại sau.");
+    if (!response.ok || !result.ok) { const detail = result.error || result.message || result.detail; throw new Error(detail ? "HTTP " + response.status + ": " + detail : "Dịch vụ trò chơi đang gặp sự cố (HTTP " + response.status + "). Vui lòng thử lại sau."); }
     return result;
   }
   async function uploadCloud() {
