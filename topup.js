@@ -23,7 +23,7 @@
     const host=$('topupHistory');if(!host)return;
     host.innerHTML=history.length?history.map(x=>{
       const paid=x.status==='PAID',total=Number(x.creditAmount)||Number(x.amount)*rate;
-      return '<div class="topup-history-item"><div><b>'+fmt(x.amount)+'</b><small>'+new Date(x.createdAt).toLocaleString('vi-VN')+' · '+x.code+'</small><small>Thưởng: +'+fmt(bonus)+' · Tổng nhận: '+fmt(total)+'</small></div><b class="topup-state '+(paid?'paid':'')+'">'+(paid?'Đã thanh toán':x.status==='EXPIRED'?'Hết hạn':'Đang chờ')+'</b></div>';
+      return '<div class="topup-history-item"><div><b>'+fmt(x.amount)+'</b><small>'+new Date(x.createdAt).toLocaleString('vi-VN')+' · '+x.code+'</small><small>Nhận: '+fmt(total)+' · Danh tiếng +'+Math.floor(Number(x.amount)/100000)+' · Ảnh hưởng +'+Math.floor(Number(x.amount)/500000)+'</small></div><b class="topup-state '+(paid?'paid':'')+'">'+(paid?'Đã thanh toán':x.status==='EXPIRED'?'Hết hạn':'Đang chờ')+'</b></div>';
     }).join(''):'<p class="muted">Chưa có giao dịch.</p>';
   }
   async function refresh(){
