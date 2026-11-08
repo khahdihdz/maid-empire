@@ -92,7 +92,7 @@ async function ensureTabs(env) {
     { range: "Players!A1:D1", values: [["Google Sub", "Email", "Tên hiển thị", "Lần đăng nhập cuối"]] },
     { range: "GameSaves!A1:E1", values: [["Google Sub", "Email", "Tên hiển thị", "Save JSON", "Cập nhật lúc"]] },
     { range: "SaveHistory!A1:E1", values: [["Thời gian", "Google Sub", "Email", "Thao tác", "Kích thước save"]] },
-    { range: "PaymentOrders!A1:J1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền thanh toán", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay", "Tiền game nhận được"]] },
+    { range: "PaymentOrders!A1:L1", values: [["Mã đơn", "Google Sub", "Email", "Số tiền thanh toán", "Nội dung", "Trạng thái", "Tạo lúc", "Hết hạn", "Mã giao dịch SePay", "Tiền game cơ bản", "Thưởng khuyến mãi", "Tên ưu đãi"]] },
     { range: "PaymentTransactions!A1:F1", values: [["Mã giao dịch SePay", "Mã đơn", "Số tiền", "Mã tham chiếu", "Nội dung", "Thời gian nhận"]] }
   ];
   await Promise.all(headers.map(x => sheetsRequest(env, "/values/" + encodeURIComponent(x.range) + "?valueInputOption=RAW", {
@@ -190,7 +190,8 @@ async function saveGame(env, profile, save) {
 }
 
 const TOPUP_PACKAGES = [50000,100000,200000,500000,1000000];
-const TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 VND tiền trong game
+const TOPUP_RATE = 1000; // 1 VND thanh toán = 1.000 tiền trong game
+const TOPUP_BONUS = {50000:5,100000:8,200000:12,500000:18,1000000:25};
 function makePaymentCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="ME";for(let i=0;i<10;i++)out+=chars[Math.floor(Math.random()*chars.length)];return out;}
 async function createTopup(env,profile,amount){
  amount=Number(amount);
@@ -199,13 +200,15 @@ async function createTopup(env,profile,amount){
  const orderId="ME"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
  const code=makePaymentCode(),now=Date.now(),expires=new Date(now+15*60*1000).toISOString();
  const creditAmount=amount*TOPUP_RATE;
- await appendRow(env,"PaymentOrders!A:J",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount)]);
+ const bonusPercent=TOPUP_BONUS[amount]||0,bonusAmount=Math.floor(creditAmount*bonusPercent/100);
+ const promoLabel=bonusPercent?"Ưu đãi nạp "+bonusPercent+"%":"Không có ưu đãi";
+ await appendRow(env,"PaymentOrders!A:L",[orderId,profile.sub,profile.email,String(amount),code,"PENDING",new Date(now).toISOString(),expires,"",String(creditAmount),String(bonusAmount),promoLabel]);
  const qrUrl="https://vietqr.app/img?"+new URLSearchParams({acc:env.PAY_BANK_ACCOUNT,bank:env.PAY_BANK_CODE,amount:String(amount),des:code}).toString();
- return {orderId,amount,creditAmount,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
+ return {orderId,amount,creditAmount,bonusAmount,bonusPercent,totalCredit:creditAmount+bonusAmount,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
 }
 async function getTopupHistory(env,profile){
  const rows=await readRows(env,"PaymentOrders!A2:J");
- return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]}));
+ return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,bonusAmount:Number(r[10])||0,promoLabel:r[11]||"",totalCredit:(Number(r[9])||Number(r[3])*TOPUP_RATE)+(Number(r[10])||0),code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]}));
 }
 async function handleSePayWebhook(request,env){
  if(!env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Webhook not configured"},503);
@@ -230,15 +233,15 @@ async function handleSePayWebhook(request,env){
  const creditAmount=Number(order[9])||amount*TOPUP_RATE;
  save.cash=(Number(save.cash)||0)+creditAmount;
  if(!Array.isArray(save.ledger))save.ledger=[];
- save.ledger.unshift({name:"Nạp tiền qua QR",n:creditAmount,income:true,day:Number(save.day)||1,time:"",external:true});
+ save.ledger.unshift({name:"Nạp tiền qua QR",n:totalCredit,income:true,day:Number(save.day)||1,time:"",external:true});
  if(!Array.isArray(save.journal))save.journal=[];
- save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game");
+ save.journal.unshift("Nạp tiền thành công · +"+new Intl.NumberFormat("vi-VN").format(creditAmount)+" tiền game"+(bonusAmount?" · Thưởng ưu đãi +"+new Intl.NumberFormat("vi-VN").format(bonusAmount):""));
  save.journal=save.journal.slice(0,300);
  const now=new Date().toISOString();
  await updateRow(env,"GameSaves!A"+(saveIdx+2)+":E"+(saveIdx+2),[order[1],saves[saveIdx][1],saves[saveIdx][2],JSON.stringify(save),now]);
- await updateRow(env,"PaymentOrders!A"+rowNo+":J"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount)]);
+ await updateRow(env,"PaymentOrders!A"+rowNo+":J"+rowNo,[...order.slice(0,5),"PAID",order[6],order[7],txId,String(creditAmount),String(bonusAmount),order[11]||""]);
  await appendRow(env,"PaymentTransactions!A:F",[txId,order[0],String(amount),String(body.referenceCode||""),String(body.content||""),now]);
- await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+creditAmount,txId]);
+ await appendRow(env,"SaveHistory!A:E",[now,order[1],order[2],"TOPUP "+amount+" => "+totalCredit+" (base "+creditAmount+", bonus "+bonusAmount+"),txId]);
  return json({success:true});
 }
 
@@ -301,7 +304,7 @@ export default {
           await updateRow(env, "PaymentOrders!A" + rowNo + ":J" + rowNo, [...order.slice(0,5), "EXPIRED", ...order.slice(6)]);
           return json({ ok: true, status: "EXPIRED" }, 200, allowed);
         }
-        return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE }, 200, allowed);
+        return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE, bonusAmount: Number(order[10]) || 0, totalCredit: (Number(order[9]) || Number(order[3]) * TOPUP_RATE) + (Number(order[10]) || 0), promoLabel: order[11] || "" }, 200, allowed);
       }
       return json({ ok: false, error: "Not found" }, 404, allowed);
     } catch (error) {
