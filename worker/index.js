@@ -108,7 +108,7 @@ async function verifyGoogleToken(idToken, env) {
   if (!response.ok || info.aud !== env.GOOGLE_CLIENT_ID) throw new Error("Google ID token không hợp lệ hoặc sai Client ID.");
   if (!info.sub || Number(info.exp) * 1000 <= Date.now()) throw new Error("Phiên đăng nhập Google đã hết hạn.");
   if (!["accounts.google.com", "https://accounts.google.com"].includes(info.iss)) throw new Error("Nguồn xác thực Google không hợp lệ.");
-  if (info.email_verified !== "true") throw new Error("Tài khoản Google chưa xác minh email.");
+  if (info.email_verified !== true && info.email_verified !== "true") throw new Error("Tài khoản Google chưa xác minh email.");
   const profile = { sub: info.sub, email: info.email || "", name: info.name || info.email || "Người chơi" };
   verifiedTokens.set(idToken, { profile, exp: Math.min(Number(info.exp) * 1000, Date.now() + 300000) });
   return profile;
