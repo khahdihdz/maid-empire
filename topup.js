@@ -2,11 +2,11 @@
   const $=id=>document.getElementById(id);
   const fmt=n=>new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(Number(n)||0);
   const packages=[
-    {amount:50000,bonus:5,label:'Khởi đầu'},
-    {amount:100000,bonus:8,label:'Phổ biến'},
-    {amount:200000,bonus:12,label:'Tiết kiệm'},
-    {amount:500000,bonus:18,label:'Cao cấp'},
-    {amount:1000000,bonus:25,label:'Đại gia'}
+    {amount:50000,label:'Khởi đầu'},
+    {amount:100000,label:'Phổ biến'},
+    {amount:200000,label:'Tiết kiệm'},
+    {amount:500000,label:'Cao cấp'},
+    {amount:1000000,label:'Đại gia'}
   ];
   const rate=1000;
   let activeOrder=null,pollTimer=0,history=[];
@@ -15,14 +15,14 @@
   function renderPackages(){
     const host=$('topupPackages');if(!host)return;
     host.innerHTML=packages.map(p=>{
-      const base=p.amount*rate,bonus=Math.floor(base*p.bonus/100);
-      return '<article class="card topup-package"><span class="tag">'+p.label.toUpperCase()+'</span><h3>'+fmt(p.amount)+'</h3><div class="topup-base">Tiền game cơ bản <b>'+fmt(base)+'</b></div><div class="topup-bonus">+'+p.bonus+'% · Thưởng <b>'+fmt(bonus)+'</b></div><div class="price">Tổng nhận '+fmt(base+bonus)+'</div><small>Tỷ lệ cơ bản 1 : 1.000</small><button class="primary" type="button" data-topup="'+p.amount+'">CHỌN GÓI NẠP</button></article>';
+      const base=p.amount*rate,rep=Math.floor(p.amount/100000),inf=Math.floor(p.amount/500000);
+      return '<article class="card topup-package"><span class="tag">'+p.label.toUpperCase()+'</span><h3>'+fmt(p.amount)+'</h3><div class="topup-base">Tiền game nhận <b>'+fmt(base)+'</b></div><div class="topup-bonus">Danh tiếng dự kiến <b>+'+rep+'</b> · Ảnh hưởng <b>+'+inf+'</b></div><div class="price">Tỷ lệ 1 : 1.000</div><small>Không cộng thêm tiền game</small><button class="primary" type="button" data-topup="'+p.amount+'">CHỌN GÓI NẠP</button></article>';
     }).join('');
   }
   function renderHistory(){
     const host=$('topupHistory');if(!host)return;
     host.innerHTML=history.length?history.map(x=>{
-      const paid=x.status==='PAID',bonus=Number(x.bonusAmount)||0,total=Number(x.totalCredit)||((Number(x.creditAmount)||Number(x.amount)*rate)+bonus);
+      const paid=x.status==='PAID',total=Number(x.creditAmount)||Number(x.amount)*rate;
       return '<div class="topup-history-item"><div><b>'+fmt(x.amount)+'</b><small>'+new Date(x.createdAt).toLocaleString('vi-VN')+' · '+x.code+'</small><small>Thưởng: +'+fmt(bonus)+' · Tổng nhận: '+fmt(total)+'</small></div><b class="topup-state '+(paid?'paid':'')+'">'+(paid?'Đã thanh toán':x.status==='EXPIRED'?'Hết hạn':'Đang chờ')+'</b></div>';
     }).join(''):'<p class="muted">Chưa có giao dịch.</p>';
   }
@@ -36,7 +36,7 @@
     try{
       const r=await api().request('/api/topup/status?orderId='+encodeURIComponent(activeOrder.orderId));
       if(r.status==='PAID'){
-        $('topupMessage').textContent='Thanh toán thành công. Số dư đã được cập nhật, bao gồm tiền thưởng ưu đãi.';
+        $('topupMessage').textContent='Thanh toán thành công. Tiền game, danh tiếng và ảnh hưởng đã được cập nhật.';
         status('Đã thanh toán');clearInterval(pollTimer);activeOrder=null;
         const loaded=await api().request('/api/load');if(loaded.save)window.maidEmpire.load(loaded.save);
         await refresh();window.dispatchEvent(new CustomEvent('maid-empire-refresh'));
@@ -51,10 +51,10 @@
       status('Đang tạo giao dịch…');
       const r=await api().request('/api/topup/create','POST',{amount});
       activeOrder=r;$('topupCheckout').hidden=false;$('topupQr').src=r.qrUrl;
-      const base=Number(r.creditAmount)||amount*rate,bonus=Number(r.bonusAmount)||0,total=Number(r.totalCredit)||base+bonus;
-      $('topupAmount').innerHTML='Thanh toán: <b>'+fmt(r.amount)+'</b><br>Tiền game: '+fmt(base)+'<br><span class="topup-bonus">Thưởng '+(r.bonusPercent||0)+'%: +'+fmt(bonus)+'</span><br><strong>Tổng nhận: '+fmt(total)+'</strong>';
+      const base=Number(r.creditAmount)||amount*rate;
+      $('topupAmount').innerHTML='Thanh toán: <b>'+fmt(r.amount)+'</b><br>Tiền game nhận: <b>'+fmt(base)+'</b><br>Danh tiếng: +'+(r.reputationGain||Math.floor(amount/100000))+'<br>Ảnh hưởng: +'+(r.influenceGain||Math.floor(amount/500000))+'<br><strong>Không có thưởng tiền game</strong>;
       $('topupCode').textContent=r.code;$('topupExpiry').textContent='Hết hạn lúc '+new Date(r.expiresAt).toLocaleString('vi-VN');
-      $('topupMessage').textContent='Ưu đãi được cộng tự động sau khi hệ thống xác nhận thanh toán.';
+      $('topupMessage').textContent='Danh tiếng và ảnh hưởng được cộng tự động khi xác nhận thanh toán.';
       status('Đang chờ thanh toán');clearInterval(pollTimer);pollTimer=setInterval(check,5000);await refresh();
     }catch(e){status('Không thể tạo giao dịch');alert(e.message)}
   }
