@@ -215,12 +215,15 @@ async function createTopup(env,profile,amount){
 }
 async function getTopupHistory(env,profile){
   const rows=await readRows(env,"PaymentOrders!A2:L");
-  return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({
+  return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>{
+    const validBenefits=r[10]!==""&&r[11]!==""&&Number.isFinite(Number(r[10]))&&Number.isFinite(Number(r[11]));
+    return {
     orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,
     bonusAmount:0,totalCredit:Number(r[9])||Number(r[3])*TOPUP_RATE,
-    reputationGain:Number(r[10])||0,influenceGain:Number(r[11])||0,
+    reputationGain:validBenefits?Number(r[10]):Math.floor(Number(r[3])/TOPUP_REPUTATION_STEP),
+    influenceGain:validBenefits?Number(r[11]):Math.floor(Number(r[3])/TOPUP_INFLUENCE_STEP),
     code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]
-  }));
+  };});
 }
 async function handleSePayWebhook(request,env){
   if(!env.SEPAY_WEBHOOK_API_KEY)return json({success:false,error:"Webhook not configured"},503);
@@ -258,8 +261,9 @@ async function handleSePayWebhook(request,env){
   if(!prior){
     const oldRep=Math.max(0,Math.min(100,Number(save.rep)||0));
     const oldInfluence=Math.max(0,Math.min(100,Number(save.influence)||0));
-    const requestedRep=Math.max(0,Number(order[10])||Math.floor(amount/TOPUP_REPUTATION_STEP));
-    const requestedInfluence=Math.max(0,Number(order[11])||Math.floor(amount/TOPUP_INFLUENCE_STEP));
+    const validBenefits=order[10]!==""&&order[11]!==""&&Number.isFinite(Number(order[10]))&&Number.isFinite(Number(order[11]));
+    const requestedRep=validBenefits?Math.max(0,Math.min(100,Number(order[10]))):Math.floor(amount/TOPUP_REPUTATION_STEP);
+    const requestedInfluence=validBenefits?Math.max(0,Math.min(100,Number(order[11]))):Math.floor(amount/TOPUP_INFLUENCE_STEP);
     save.cash=(Number(save.cash)||0)+creditAmount;
     save.rep=Math.min(100,oldRep+requestedRep);
     save.influence=Math.min(100,oldInfluence+requestedInfluence);
