@@ -339,7 +339,7 @@ export default {
         if (!order) return json({ ok: false, error: "Không tìm thấy giao dịch." }, 404, allowed);
         if (order[5] === "PENDING" && Date.now() > Date.parse(order[7])) {
           const rowNo = rows.indexOf(order) + 2;
-          await updateRow(env, "PaymentOrders!A" + rowNo + ":J" + rowNo, [...order.slice(0,5), "EXPIRED", ...order.slice(6)]);
+          await updateRow(env, "PaymentOrders!A" + rowNo + ":L" + rowNo, [...order.slice(0,5), "EXPIRED", ...order.slice(6)]);
           return json({ ok: true, status: "EXPIRED" }, 200, allowed);
         }
         return json({ ok: true, status: order[5], amount: Number(order[3]), creditAmount: Number(order[9]) || Number(order[3]) * TOPUP_RATE, bonusAmount: 0, totalCredit: Number(order[9]) || Number(order[3]) * TOPUP_RATE, reputationGain: Number(order[10]) || 0, influenceGain: Number(order[11]) || 0 }, 200, allowed);
