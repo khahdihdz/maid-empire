@@ -142,3 +142,13 @@ html,body{touch-action:pan-x pan-y;overscroll-behavior-x:none}button,a,input,sel
 /* Ensure active event choices remain tappable on mobile browsers. */
 #dailyEvent,.event-card,.event-choices{position:relative;pointer-events:auto;}
 .event-choices button{position:relative;z-index:2;pointer-events:auto;touch-action:manipulation;cursor:pointer;}
+
+
+/* Top-up promotions and transparent bonus breakdown */
+.topup-promo{margin:14px 0;border:1px solid rgba(210,170,95,.35);background:linear-gradient(135deg,rgba(150,105,50,.14),rgba(70,40,65,.22))}
+.topup-promo h3{margin:8px 0}.topup-package{border:1px solid rgba(190,150,95,.22)}
+.topup-package .topup-base,.topup-package .topup-bonus{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.topup-bonus{color:#e8c078}.topup-package .price{font-size:19px;font-weight:800;margin:4px 0}
+.topup-history-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line,#392d3c)}
+.topup-history-item small{display:block;color:var(--muted,#aaa);margin-top:3px}.topup-state{white-space:nowrap;color:var(--muted,#aaa)}.topup-state.paid{color:#83d6a5}
+#topupAmount{line-height:1.8;text-align:center}
