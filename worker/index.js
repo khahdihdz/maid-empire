@@ -207,7 +207,7 @@ async function createTopup(env,profile,amount){
  return {orderId,amount,creditAmount,bonusAmount,bonusPercent,totalCredit:creditAmount+bonusAmount,promoLabel,rate:TOPUP_RATE,code,expiresAt:expires,qrUrl};
 }
 async function getTopupHistory(env,profile){
- const rows=await readRows(env,"PaymentOrders!A2:J");
+ const rows=await readRows(env,"PaymentOrders!A2:L");
  return rows.filter(r=>r[1]===profile.sub).slice(-30).reverse().map(r=>({orderId:r[0],amount:Number(r[3]),creditAmount:Number(r[9])||Number(r[3])*TOPUP_RATE,bonusAmount:Number(r[10])||0,promoLabel:r[11]||"",totalCredit:(Number(r[9])||Number(r[3])*TOPUP_RATE)+(Number(r[10])||0),code:r[4],status:r[5],createdAt:r[6],expiresAt:r[7]}));
 }
 async function handleSePayWebhook(request,env){
@@ -218,7 +218,7 @@ async function handleSePayWebhook(request,env){
  if(!txId||!Number.isSafeInteger(amount)||amount<=0||direction!=="in")return json({success:false,error:"Invalid transaction"},400);
  if(env.PAY_BANK_ACCOUNT&&String(body.accountNumber||"")!==String(env.PAY_BANK_ACCOUNT))return json({success:false,error:"Wrong receiving account"},400);
  const searchable=(String(body.code||"")+" "+String(body.content||"")).toUpperCase();
- const orders=await readRows(env,"PaymentOrders!A2:J");
+ const orders=await readRows(env,"PaymentOrders!A2:L");
  const idx=orders.findIndex(r=>r[4]&&searchable.includes(String(r[4]).toUpperCase()));
  if(idx<0)return json({success:true,ignored:true});
  const order=orders[idx],rowNo=idx+2;
@@ -231,7 +231,8 @@ async function handleSePayWebhook(request,env){
  if(saveIdx<0||!saves[saveIdx][3])return json({success:false,error:"Player save not found"},500);
  let save;try{save=JSON.parse(saves[saveIdx][3])}catch{return json({success:false,error:"Invalid player save"},500)}
  const creditAmount=Number(order[9])||amount*TOPUP_RATE;
- save.cash=(Number(save.cash)||0)+creditAmount;
+ const bonusAmount=Number(order[10])||0,totalCredit=creditAmount+bonusAmount;
+ save.cash=(Number(save.cash)||0)+totalCredit;
  if(!Array.isArray(save.ledger))save.ledger=[];
  save.ledger.unshift({name:"Nạp tiền qua QR",n:totalCredit,income:true,day:Number(save.day)||1,time:"",external:true});
  if(!Array.isArray(save.journal))save.journal=[];
@@ -296,7 +297,7 @@ export default {
       }
       if (url.pathname === "/api/topup/status" && request.method === "GET") {
         const orderId = url.searchParams.get("orderId") || "";
-        const rows = await readRows(env, "PaymentOrders!A2:J");
+        const rows = await readRows(env, "PaymentOrders!A2:L");
         const order = rows.find(r => r[0] === orderId && r[1] === profile.sub);
         if (!order) return json({ ok: false, error: "Không tìm thấy giao dịch." }, 404, allowed);
         if (order[5] === "PENDING" && Date.now() > Date.parse(order[7])) {
